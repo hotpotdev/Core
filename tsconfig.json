@@ -5,6 +5,8 @@
     "strict": true,
     "esModuleInterop": true,
     "noImplicitAny": false,
+    "skipLibCheck": true,
+    "strictNullChecks": false,
     "outDir": "dist",
     "declaration": true
   },

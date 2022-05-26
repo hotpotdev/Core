@@ -74,8 +74,8 @@ abstract contract HotpotERC20Base is ERC20Pausable, HotpotMetadata, SwapCurve, A
         _mintCap = upperlimit;
     }
 
-    function _initPremint() internal {
-        _premint = true;
+    function _initPremint(bool pre) internal {
+        _premint = pre;
     }
 
     function _initTreasury(address account) internal {
@@ -97,7 +97,7 @@ abstract contract HotpotERC20Base is ERC20Pausable, HotpotMetadata, SwapCurve, A
     }
 
     function _destroy() internal {
-        require(!_doomsday, 'Warning: You are not allowed to destroy under normal circumstances');
+        require(_doomsday, 'Warning: You are not allowed to destroy under normal circumstances');
         emit Destroyed(_msgSender());
         selfdestruct(payable(_treasury));
     }

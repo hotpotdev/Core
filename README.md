@@ -44,3 +44,9 @@ npx hardhat verify --network ropsten DEPLOYED_CONTRACT_ADDRESS "Hello, Hardhat!"
 # Performance optimizations
 
 For faster runs of your tests and scripts, consider skipping ts-node's type checking by setting the environment variable `TS_NODE_TRANSPILE_ONLY` to `1` in hardhat's environment. For more details see [the documentation](https://hardhat.org/guides/typescript.html#performance-optimizations).
+
+# FAQS
+* typechain 的 ts2352 问题 (coversion)
+```
+package.json 设置将 ethers的版本设置为 ^5.4.7
+```

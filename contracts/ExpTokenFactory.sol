@@ -5,7 +5,7 @@ import "hardhat/console.sol";
 import "./ExpMixedToken.sol";
 contract ExpHotpotTokenFactory is ExpMixedHotpotToken{
 
-    constructor(string memory name, string memory symbol, address treasury,uint mintRate,uint burnRate,address platform) ExpMixedHotpotToken(name,symbol,treasury,mintRate,burnRate,platform){
+    constructor(string memory name, string memory symbol, address treasury,uint mintRate,uint burnRate,address platform,bool premint,uint mintCap) ExpMixedHotpotToken(name,symbol,treasury,mintRate,burnRate,platform,premint,mintCap){
     }
     
 }

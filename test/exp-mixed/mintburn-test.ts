@@ -1,10 +1,12 @@
 import { expect } from "chai"
 import { ethers, network } from "hardhat"
+import { ExpMixedHotpotToken__factory } from "../../typechain"
 
 const Wei = ethers.BigNumber.from('1')
 const GWei = ethers.BigNumber.from('1000000000')
 const Ether = ethers.BigNumber.from('1000000000000000000')
 
+const round = 10
 // 验证算子正确性，单次铸造并单次销毁
 // mining(uint256 nativeTokens, uint256 erc20Supply)
 // burning(uint256 erc20Tokens, uint256 erc20Supply)
@@ -22,22 +24,24 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
             const HotpotToken = await ethers.getContractFactory(hotpotContract)
             const mintRate = 100
             const burnRate = 100
-            const erc20 = await HotpotToken.deploy('test', 'test', treasury.address, mintRate, burnRate, platform.address)
+            const erc20 = await HotpotToken.deploy('test', 'test', treasury.address, mintRate, burnRate, platform.address,false,Ether.mul('50000000'))
             await erc20.deployed()
+            const hotpotTokenAbi = ExpMixedHotpotToken__factory.connect(erc20.address,erc20.signer)
+            
             await network.provider.send("hardhat_setBalance", [treasury.address, '0x0'])
             await network.provider.send("hardhat_setBalance", [platform.address, '0x0'])
             await network.provider.send("hardhat_setBalance", [buyer.address, Ether.mul(100000000)._hex.replace(/0x0+/, '0x')])
 
-            for (let i = 0; i < 100; i++) {
-                let mintTx1 = await erc20.connect(buyer).mint(buyer.address, 0, { value: Ether.mul(1000) })
+            for (let i = 0; i < round; i++) {
+                let mintTx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: Ether.mul(1000) })
                 await mintTx1.wait()
                 let platformBalance = await platform.getBalance()
                 let treasuryBalance = await treasury.getBalance()
                 let contractAsset = await ethers.provider.getBalance(erc20.address)
                 let buyerBalance = await buyer.getBalance()
-                let erc20Balance = await erc20.balanceOf(buyer.address)
-                let estimateBurn = await erc20.estimateBurn(erc20Balance)
-                let price = await erc20.price()
+                let erc20Balance = await hotpotTokenAbi.balanceOf(buyer.address)
+                let estimateBurn = await hotpotTokenAbi.estimateBurn(erc20Balance)
+                let price = await hotpotTokenAbi.price()
                 console.log(
                     '平台eth余额', ethers.utils.formatEther(platformBalance),
                     '国库eth余额', ethers.utils.formatEther(treasuryBalance),
@@ -59,23 +63,25 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
             const HotpotToken = await ethers.getContractFactory(hotpotContract)
             const mintRate = 100
             const burnRate = 100
-            const erc20 = await HotpotToken.deploy('test', 'test', treasury.address, mintRate, burnRate, platform.address)
+            const erc20 = await HotpotToken.deploy('test', 'test', treasury.address, mintRate, burnRate, platform.address,false,Ether.mul('50000000'))
             await erc20.deployed()
+            const hotpotTokenAbi = ExpMixedHotpotToken__factory.connect(erc20.address,erc20.signer)
+
             await network.provider.send("hardhat_setBalance", [treasury.address, '0x0'])
             await network.provider.send("hardhat_setBalance", [platform.address, '0x0'])
             await network.provider.send("hardhat_setBalance", [buyer.address, Ether.mul(100000000)._hex.replace(/0x0+/, '0x')])
-            let mintTx1 = await erc20.connect(buyer).mint(buyer.address, 0, { value: Ether.mul(500000) })
+            let mintTx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: Ether.mul(500000) })
             await mintTx1.wait()
-            let totalErc20Balance = await erc20.balanceOf(buyer.address)
+            let totalErc20Balance = await hotpotTokenAbi.balanceOf(buyer.address)
 
-            for (let i = 0; i < 100; i++) {
+            for (let i = 0; i < round; i++) {
                 let platformBalance = await platform.getBalance()
                 let treasuryBalance = await treasury.getBalance()
                 let contractAsset = await ethers.provider.getBalance(erc20.address)
                 let buyerBalance = await buyer.getBalance()
-                let erc20Balance = await erc20.balanceOf(buyer.address)
-                let estimateBurn = await erc20.estimateBurn(erc20Balance)
-                let price = await erc20.price()
+                let erc20Balance = await hotpotTokenAbi.balanceOf(buyer.address)
+                let estimateBurn = await hotpotTokenAbi.estimateBurn(erc20Balance)
+                let price = await hotpotTokenAbi.price()
                 console.log(
                     '平台eth余额', ethers.utils.formatEther(platformBalance),
                     '国库eth余额', ethers.utils.formatEther(treasuryBalance),
@@ -101,53 +107,55 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
             const HotpotToken = await ethers.getContractFactory(hotpotContract)
             const mintRate = 100
             const burnRate = 100
-            const erc20 = await HotpotToken.deploy('test', 'test', treasury.address, mintRate, burnRate, platform.address)
+            const erc20 = await HotpotToken.deploy('test', 'test', treasury.address, mintRate, burnRate, platform.address,false,Ether.mul('50000000'))
             await erc20.deployed()
+            const hotpotTokenAbi = ExpMixedHotpotToken__factory.connect(erc20.address,erc20.signer)
+
             await network.provider.send("hardhat_setBalance", [treasury.address, '0x0'])
             await network.provider.send("hardhat_setBalance", [platform.address, '0x0'])
             await network.provider.send("hardhat_setBalance", [buyer1.address, Ether.mul(100000000)._hex.replace(/0x0+/, '0x')])
             await network.provider.send("hardhat_setBalance", [buyer2.address, Ether.mul(100000000)._hex.replace(/0x0+/, '0x')])
             await network.provider.send("hardhat_setBalance", [buyer3.address, Ether.mul(100000000)._hex.replace(/0x0+/, '0x')])
 
-            for (let i = 0; i < 1000000; i++) {
+            for (let i = 0; i < round; i++) {
                 // buyer 1 只买不卖 1~99 ether
                 // buyer 3 买了随机转给 buyer 2
-                let mintTx1 = await erc20.connect(buyer1).mint(buyer1.address, 0, { value: Ether.mul(Math.floor(Math.random() * 49) + 1) })
+                let mintTx1 = await hotpotTokenAbi.connect(buyer1).mint(buyer1.address, 0, { value: Ether.mul(Math.floor(Math.random() * 49) + 1) })
                 await mintTx1.wait()
                 // buyer 2 即买又卖一部分 
-                let mintTx2 = await erc20.connect(buyer2).mint(buyer2.address, 0, { value: Ether.mul(Math.floor(Math.random() * 999) + 1) })
+                let mintTx2 = await hotpotTokenAbi.connect(buyer2).mint(buyer2.address, 0, { value: Ether.mul(Math.floor(Math.random() * 999) + 1) })
                 await mintTx2.wait()
-                let buyer2Erc20 = await erc20.balanceOf(buyer2.address)
-                let burnTx2 = await erc20.connect(buyer2).burn(buyer2.address, buyer2Erc20.mul(Math.floor(Math.random() * 99) + 1).div(100))
+                let buyer2Erc20 = await hotpotTokenAbi.balanceOf(buyer2.address)
+                let burnTx2 = await hotpotTokenAbi.connect(buyer2).burn(buyer2.address, buyer2Erc20.mul(Math.floor(Math.random() * 99) + 1).div(100))
                 await burnTx2.wait()
                 // buyer 3 随机买大单，并随机往 buyer 2，buyer 3 中转入
                 // buyer 3 会触发随机的抛出动作
                 if (Math.random() < 0.5) {
-                    let mintTx3 = await erc20.connect(buyer3).mint(buyer2.address, 0, { value: Ether.mul(Math.floor(Math.random() * 900) + 100) })
+                    let mintTx3 = await hotpotTokenAbi.connect(buyer3).mint(buyer2.address, 0, { value: Ether.mul(Math.floor(Math.random() * 900) + 100) })
                     await mintTx3.wait()
                 } else {
-                    let mintTx3 = await erc20.connect(buyer3).mint(buyer3.address, 0, { value: Ether.mul(Math.floor(Math.random() * 900) + 100) })
+                    let mintTx3 = await hotpotTokenAbi.connect(buyer3).mint(buyer3.address, 0, { value: Ether.mul(Math.floor(Math.random() * 900) + 100) })
                     await mintTx3.wait()
                 }
                 if (Math.random() < 0.1) {
-                    let buyer3Erc20 = await erc20.balanceOf(buyer3.address)
+                    let buyer3Erc20 = await hotpotTokenAbi.balanceOf(buyer3.address)
                     if (buyer3Erc20.gt(Ether)) {
-                        let burnTx3 = await erc20.connect(buyer3).burn(buyer3.address, buyer3Erc20.mul(Math.floor(Math.random() * 99) + 1).div(100))
+                        let burnTx3 = await hotpotTokenAbi.connect(buyer3).burn(buyer3.address, buyer3Erc20.mul(Math.floor(Math.random() * 99) + 1).div(100))
                         await burnTx3.wait()
                     }
                 }
                 let platformBalance = await platform.getBalance()
                 let treasuryBalance = await treasury.getBalance()
                 let contractAsset = await ethers.provider.getBalance(erc20.address)
-                let contractTotalSupply = await erc20.totalSupply()
-                let estimateBurn = await erc20.estimateBurn(contractTotalSupply)
-                let price = await erc20.price()
+                let contractTotalSupply = await hotpotTokenAbi.totalSupply()
+                let estimateBurn = await hotpotTokenAbi.estimateBurn(contractTotalSupply)
+                let price = await hotpotTokenAbi.price()
                 let buyer1Native = await buyer1.getBalance()
-                let buyer1Erc20 = await erc20.balanceOf(buyer1.address)
+                let buyer1Erc20 = await hotpotTokenAbi.balanceOf(buyer1.address)
                 let buyer2Native = await buyer2.getBalance()
-                buyer2Erc20 = await erc20.balanceOf(buyer2.address)
+                buyer2Erc20 = await hotpotTokenAbi.balanceOf(buyer2.address)
                 let buyer3Native = await buyer3.getBalance()
-                let buyer3Erc20 = await erc20.balanceOf(buyer3.address)
+                let buyer3Erc20 = await hotpotTokenAbi.balanceOf(buyer3.address)
                 console.log(
                     '平台eth余额', ethers.utils.formatEther(platformBalance),
                     '国库eth余额', ethers.utils.formatEther(treasuryBalance),

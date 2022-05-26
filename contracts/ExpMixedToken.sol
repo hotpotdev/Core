@@ -59,8 +59,8 @@ contract ExpMixedBondingSwap is IBondingCurve {
         int128 fabdk_e_index_1 = 0;
         int128 fabdk_e_index_0 = 0;
         unchecked {
-            require(fabdk_e_index_1 <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
-            require(fabdk_e_index_0 <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
+            require(e_index_1 <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
+            require(e_index_0 <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
             fabdk_e_index_1 = int128(uint128(e_index_1));
             fabdk_e_index_0 = int128(uint128(e_index_0));
         }
@@ -80,7 +80,7 @@ contract ExpMixedBondingSwap is IBondingCurve {
 
 contract ExpMixedHotpotToken is ERC20HotpotMixed {
     // 
-    constructor(string memory name, string memory symbol, address treasury,uint mintRate,uint burnRate,address platform) ERC20(name, symbol){
+    constructor(string memory name, string memory symbol, address treasury,uint mintRate,uint burnRate,address platform,bool premint,uint mintCap) ERC20(name, symbol){
 
         _initTreasury(treasury);
         _initPlatform(platform);
@@ -95,8 +95,7 @@ contract ExpMixedHotpotToken is ERC20HotpotMixed {
         _setupRole(PREMINT_ROLE, _treasury);
         _setRoleAdmin(PREMINT_ROLE, PROJECT_ROLE);
 
-        _initPremint();
-        _setMintCap(25e6 * 1e18);
-
+        _initPremint(premint);
+        _setMintCap(mintCap);
     }
 }

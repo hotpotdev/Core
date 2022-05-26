@@ -1,5 +1,6 @@
 import { expect } from "chai"
 import { ethers, network } from "hardhat"
+import { ExpMixedBondingSwap__factory } from "../../typechain"
 
 const Wei = ethers.BigNumber.from('1')
 const GWei = ethers.BigNumber.from('1000000000')
@@ -8,7 +9,7 @@ const Ether = ethers.BigNumber.from('1000000000000000000')
 // 验证算子正确性，单次铸造并单次销毁
 // mining(uint256 nativeTokens, uint256 erc20Supply)
 // burning(uint256 erc20Tokens, uint256 erc20Supply)
-describe("测试 Bonding Curve Swap 计算函数 算子测试", async () => {
+describe("验证 Bonding Curve Swap 计算函数 算子测试", async () => {
     let calculatorContract = "ExpMixedBondingSwap"
     let hotpotContract = "ExpHotpotTokenFactory"
     
@@ -18,11 +19,12 @@ describe("测试 Bonding Curve Swap 计算函数 算子测试", async () => {
             const BondingCurve = await ethers.getContractFactory(calculatorContract)
             const curve = await BondingCurve.deploy()
             await curve.deployed()
+            const curveAbi = ExpMixedBondingSwap__factory.connect(curve.address,curve.signer)
 
             let testOne = async (nativeAsset) => {
-                let ans = await curve.mining(nativeAsset, 0)
-                let ans2 = await curve.burning(ans.dx, ans.dx)
-                let price = await curve.price(ans.dx)
+                let ans = await curveAbi.mining(nativeAsset, 0)
+                let ans2 = await curveAbi.burning(ans.dx, ans.dx)
+                let price = await curveAbi.price(ans.dx)
                 console.debug(
                     '铸造消耗eth', ethers.utils.formatEther(nativeAsset),
                     '生成erc20', ethers.utils.formatEther(ans2.dx),
@@ -40,11 +42,12 @@ describe("测试 Bonding Curve Swap 计算函数 算子测试", async () => {
             const BondingCurve = await ethers.getContractFactory(calculatorContract)
             const curve = await BondingCurve.deploy()
             await curve.deployed()
+            const curveAbi = ExpMixedBondingSwap__factory.connect(curve.address,curve.signer)
 
             let testOne = async (nativeAsset) => {
-                let ans = await curve.mining(nativeAsset, 0)
-                let ans2 = await curve.burning(ans.dx, ans.dx)
-                let price = await curve.price(ans.dx)
+                let ans = await curveAbi.mining(nativeAsset, 0)
+                let ans2 = await curveAbi.burning(ans.dx, ans.dx)
+                let price = await curveAbi.price(ans.dx)
                 console.debug(
                     '铸造消耗eth', ethers.utils.formatEther(nativeAsset),
                     '生成erc20', ethers.utils.formatEther(ans2.dx),
@@ -70,11 +73,12 @@ describe("测试 Bonding Curve Swap 计算函数 算子测试", async () => {
             const BondingCurve = await ethers.getContractFactory(calculatorContract)
             const curve = await BondingCurve.deploy()
             await curve.deployed()
+            const curveAbi = ExpMixedBondingSwap__factory.connect(curve.address,curve.signer)
 
             let testOne = async (fromErc20Supply, nativeAsset) => {
-                let ans = await curve.mining(nativeAsset, fromErc20Supply)
-                let ans2 = await curve.burning(ans.dx, fromErc20Supply.add(ans.dx))
-                let price = await curve.price(fromErc20Supply)
+                let ans = await curveAbi.mining(nativeAsset, fromErc20Supply)
+                let ans2 = await curveAbi.burning(ans.dx, fromErc20Supply.add(ans.dx))
+                let price = await curveAbi.price(fromErc20Supply)
                 console.debug(
                     'erc20Supply', ethers.utils.formatEther(fromErc20Supply),
                     '铸造消耗', ethers.utils.formatEther(nativeAsset),
@@ -99,10 +103,11 @@ describe("测试 Bonding Curve Swap 计算函数 算子测试", async () => {
             const BondingCurve = await ethers.getContractFactory(calculatorContract)
             const curve = await BondingCurve.deploy()
             await curve.deployed()
+            const curveAbi = ExpMixedBondingSwap__factory.connect(curve.address,curve.signer)
 
-            expect(curve.mining(Wei.shl(200), Wei)).to.be.reverted
-            expect(curve.mining(Wei, Wei.shl(200))).to.be.reverted
-            expect(curve.burning(1, 10)).to.be.reverted
+            expect(curveAbi.mining(Wei.shl(200), Wei)).to.be.reverted
+            expect(curveAbi.mining(Wei, Wei.shl(200))).to.be.reverted
+            expect(curveAbi.burning(1, 10)).to.be.reverted
         })
     })
 

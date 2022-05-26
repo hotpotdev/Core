@@ -46,7 +46,7 @@ contract LinearMixedBondingSwap is IBondingCurve {
 
 contract LinearMixedHotpotToken is ERC20HotpotMixed {
     //
-    constructor(string memory name, string memory symbol, address treasury,uint mintRate,uint burnRate,address platform,uint k,uint p) ERC20(name, symbol){
+    constructor(string memory name, string memory symbol, address treasury,uint mintRate,uint burnRate,address platform,uint k,uint p,bool premint,uint mintCap) ERC20(name, symbol){
 
         _initTreasury(treasury);
         _initPlatform(platform);
@@ -61,7 +61,7 @@ contract LinearMixedHotpotToken is ERC20HotpotMixed {
         _setupRole(PREMINT_ROLE, _treasury);
         _setRoleAdmin(PREMINT_ROLE, PROJECT_ROLE);
 
-        _initPremint();
-        _setMintCap(1e36);
+        _initPremint(premint);
+        _setMintCap(mintCap);
     }
 }

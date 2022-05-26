@@ -31,7 +31,7 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base,IHotpotSwap,ReentrancyGuar
         return (_treasuryMintFee,_treasuryBurnFee,_projectMintRate,projectBurnRate);
     }
 
-    function mint(address to, uint) public payable whenNotPaused nonReentrant {
+    function mint(address to, uint minimalErc20Token) public payable whenNotPaused nonReentrant {
         if(premint()) {
             _checkRole(PREMINT_ROLE,_msgSender());
         }
@@ -46,6 +46,7 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base,IHotpotSwap,ReentrancyGuar
         (dx, dy)= _mining(leftNative, totalSupply());
         require(dx > 1e9 && dy > 1e9, 'Mint: token amount is too low');
         require(totalSupply()+dx<=cap(), 'Mint: exceed upper limit');
+        require(dx >= minimalErc20Token, 'Mint: mint amount less than minimal expect');
         _mint(to,dx);
         
         {
