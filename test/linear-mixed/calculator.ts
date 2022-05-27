@@ -1,6 +1,5 @@
 import { expect } from "chai"
 import { ethers, network } from "hardhat"
-import { ExpMixedBondingSwap__factory } from "../../typechain"
 
 const Wei = ethers.BigNumber.from('1')
 const GWei = ethers.BigNumber.from('1000000000')
@@ -11,7 +10,6 @@ const Ether = ethers.BigNumber.from('1000000000000000000')
 // burning(uint256 erc20Tokens, uint256 erc20Supply)
 describe("验证 Bonding Curve Swap 计算函数 算子测试", async () => {
     let calculatorContract = "LinearMixedBondingSwap"
-    let hotpotContract = "LinearHotpotTokenFactory"
 
     describe("Linear Mixed Bonding Swap", async () => {
 
@@ -19,7 +17,7 @@ describe("验证 Bonding Curve Swap 计算函数 算子测试", async () => {
             const BondingCurve = await ethers.getContractFactory(calculatorContract)
             const curve = await BondingCurve.deploy(1,Ether)
             await curve.deployed()
-            const curveAbi = ExpMixedBondingSwap__factory.connect(curve.address,curve.signer)
+            const curveAbi = curve
 
             let testOne = async (nativeAsset) => {
                 let ans = await curveAbi.mining(nativeAsset, 0)
@@ -42,7 +40,7 @@ describe("验证 Bonding Curve Swap 计算函数 算子测试", async () => {
             const BondingCurve = await ethers.getContractFactory(calculatorContract)
             const curve = await BondingCurve.deploy(1,Ether)
             await curve.deployed()
-            const curveAbi = ExpMixedBondingSwap__factory.connect(curve.address,curve.signer)
+            const curveAbi = curve
 
             let testOne = async (nativeAsset) => {
                 let ans = await curveAbi.mining(nativeAsset, 0)
@@ -73,7 +71,7 @@ describe("验证 Bonding Curve Swap 计算函数 算子测试", async () => {
             const BondingCurve = await ethers.getContractFactory(calculatorContract)
             const curve = await BondingCurve.deploy(1,Ether)
             await curve.deployed()
-            const curveAbi = ExpMixedBondingSwap__factory.connect(curve.address,curve.signer)
+            const curveAbi = curve
 
             let testOne = async (fromErc20Supply, nativeAsset) => {
                 let ans = await curveAbi.mining(nativeAsset, fromErc20Supply)
@@ -103,7 +101,7 @@ describe("验证 Bonding Curve Swap 计算函数 算子测试", async () => {
             const BondingCurve = await ethers.getContractFactory(calculatorContract)
             const curve = await BondingCurve.deploy(1,Ether)
             await curve.deployed()
-            const curveAbi = ExpMixedBondingSwap__factory.connect(curve.address,curve.signer)
+            const curveAbi = curve
 
             expect(curveAbi.mining(Wei.shl(200), Wei)).to.be.reverted
             expect(curveAbi.mining(Wei, Wei.shl(200))).to.be.reverted
