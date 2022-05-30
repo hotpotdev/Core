@@ -114,8 +114,8 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGu
     /**
      * @dev burn
      */
-    function burn(address to, uint256 erc20Tokens) public payable whenNotPaused nonReentrant {
-        require(msg.value == 0, "Burn: dont need to attach ether");
+    function burn(address to, uint256 erc20Tokens) public whenNotPaused nonReentrant {
+        // require(msg.value == 0, "Burn: dont need to attach ether");
         address from = _msgSender();
         uint256 dx = erc20Tokens;
         uint256 dy;

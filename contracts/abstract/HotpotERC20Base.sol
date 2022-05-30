@@ -19,8 +19,8 @@ abstract contract HotpotERC20Base is
     bytes32 public constant PROJECT_ROLE = keccak256("PROJECT_ROLE");
     bytes32 public constant PREMINT_ROLE = keccak256("PREMINT_ROLE");
 
-    address public _treasury = 0x0000000000000000000000000000000000000000;
-    address public _factory = 0x0000000000000000000000000000000000000000;
+    address internal _treasury = 0x0000000000000000000000000000000000000000;
+    address internal _factory = 0x0000000000000000000000000000000000000000;
 
     uint256 private _mintCap = 1e36;
     bool private _premint = false;

@@ -25,16 +25,16 @@ contract LinearMixedBondingSwap is IBondingCurve {
 
     function mining(uint256 nativeTokens, uint256 erc20Supply) public view override returns (uint256 dx, uint256 dy) {
         dy = nativeTokens;
-        uint256 erc20CurrentPrice = k * erc20Supply + p;
-        dx = ((erc20CurrentPrice * erc20CurrentPrice + 2 * k * dy * 1e18).sqrt() - erc20CurrentPrice) / k;
+        uint256 erc20CurrentPrice = erc20Supply / k + p;
+        dx = ((erc20CurrentPrice * erc20CurrentPrice + 2 * dy * 1e18 / k).sqrt() - erc20CurrentPrice) * k;
         return (dx, dy);
     }
 
     // (dx,dy) = Fx(erc20Supply) - Fx(erc20Supply-dx)
     function burning(uint256 erc20Tokens, uint256 erc20Supply) public view override returns (uint256 dx, uint256 dy) {
         dx = erc20Tokens;
-        uint256 currentErc20Price = k * erc20Supply + p;
-        dy = (currentErc20Price * erc20Tokens - (k * erc20Tokens * erc20Tokens) / 2) / 1e18;
+        uint256 erc20CurrentPrice = erc20Supply / k + p;
+        dy = (erc20CurrentPrice * erc20Tokens - (erc20Tokens * erc20Tokens / k) / 2) / 1e18;
         return (dx, dy);
     }
 

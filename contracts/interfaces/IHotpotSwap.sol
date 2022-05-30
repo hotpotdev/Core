@@ -10,7 +10,7 @@ interface IHotpotSwap {
 
     function estimateMint(uint) external view returns (uint dx, uint dy, uint gasMint);
 
-    function burn(address to, uint) external payable;
+    function burn(address to, uint) external;
 
     function estimateBurn(uint) external view returns (uint dx, uint dy, uint gasBurn);
 

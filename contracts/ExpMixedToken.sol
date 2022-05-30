@@ -23,8 +23,7 @@ contract ExpMixedBondingSwap is IBondingCurve {
     }
 
     // F(x) = (a) e**(x/b)
-    // 25000000000000000000000000 => 498273,592589687761195622
-    // 2000000000000000000000 => 10000000000000000000000000
+    // 2000.0 native => 9937641.487326497977995709 erc20
     // (dx,dy) = Fx(totalSupply+dx) - Fx(totalSupply)
     function mining(uint256 nativeTokens, uint256 erc20Supply) public view override returns (uint256 dx, uint256 dy) {
         dy = nativeTokens;
@@ -32,20 +31,14 @@ contract ExpMixedBondingSwap is IBondingCurve {
         require(nativeTokens < uint256(1 << 192));
         uint256 e_index = (erc20Supply << 64) / (b * 1e18);
         uint256 e_mod = (nativeTokens << 64) / (a * 1e18);
-        int128 fabdk_e_index = 0;
-        int128 fabdk_e_mod = 0;
-        unchecked {
-            require(e_index <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
-            require(e_mod <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
-            fabdk_e_index = int128(uint128(e_index));
-            fabdk_e_mod = int128(uint128(e_mod));
-        }
+        require(e_index <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
+        require(e_mod <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
+        int128 fabdk_e_index = int128(uint128(e_index));
+        int128 fabdk_e_mod = int128(uint128(e_mod));
         int128 fabdk_x = (fabdk_e_index.exp() + fabdk_e_mod).ln();
-        unchecked {
-            require(fabdk_x >= 0);
-            dx = (((uint256(uint128(fabdk_x))) * b * 1e18) >> 64) - erc20Supply;
-            return (dx, dy);
-        }
+        require(fabdk_x >= 0);
+        dx = (((uint256(uint128(fabdk_x))) * b * 1e18) >> 64) - erc20Supply;
+        return (dx, dy);
     }
 
     // (dx,dy) = Fx(erc20Supply) - Fx(erc20Supply-dx)
@@ -55,25 +48,24 @@ contract ExpMixedBondingSwap is IBondingCurve {
         require(erc20Tokens < uint256(1 << 192));
         uint256 e_index_1 = (erc20Supply << 64) / (b * 1e18);
         uint256 e_index_0 = ((erc20Supply - erc20Tokens) << 64) / (b * 1e18);
-        int128 fabdk_e_index_1 = 0;
-        int128 fabdk_e_index_0 = 0;
-        unchecked {
-            require(e_index_1 <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
-            require(e_index_0 <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
-            fabdk_e_index_1 = int128(uint128(e_index_1));
-            fabdk_e_index_0 = int128(uint128(e_index_0));
-        }
+        require(e_index_1 <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
+        require(e_index_0 <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
+        int128 fabdk_e_index_1 = int128(uint128(e_index_1));
+        int128 fabdk_e_index_0 = int128(uint128(e_index_0));
         int128 fabdk_y = fabdk_e_index_1.exp() - fabdk_e_index_0.exp();
-        unchecked {
-            require(fabdk_y >= 0);
-            dy = ((uint256(uint128(fabdk_y))) * a * 1e18) >> 64;
-            return (dx, dy);
-        }
+        require(fabdk_y >= 0);
+        dy = ((uint256(uint128(fabdk_y))) * a * 1e18) >> 64;
+        return (dx, dy);
     }
 
     function price(uint256 erc20Supply) public view override returns (uint256) {
-        (uint256 x, uint256 y) = burning(1e18, erc20Supply + 1e18);
-        return (y * 1e18) / x;
+        uint256 e_index = (erc20Supply << 64) / (b * 1e18);
+        require(e_index <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
+        int128 fabdk_e_index = int128(uint128(e_index));
+        int128 fabdk_y = fabdk_e_index.exp();
+        require(fabdk_y >= 0);
+        uint256 p = ((uint256(uint128(fabdk_y))) * a * 1e18 / b) >> 64;
+        return p;
     }
 }
 

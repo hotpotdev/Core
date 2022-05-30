@@ -15,20 +15,24 @@ describe("验证 Bonding Curve Swap 计算函数 算子测试", async () => {
 
         it("样例 计算方程 的 结果", async () => {
             const BondingCurve = await ethers.getContractFactory(calculatorContract)
-            const curve = await BondingCurve.deploy(1,Ether)
+            const curve = await BondingCurve.deploy(10,Ether)
             await curve.deployed()
             const curveAbi = curve
 
             let testOne = async (nativeAsset) => {
                 let ans = await curveAbi.mining(nativeAsset, 0)
-                let ans2 = await curveAbi.burning(ans.dx, ans.dx)
+                let ans2 = await curveAbi.burning(ans.dx.sub(GWei), ans.dx)
                 let price = await curveAbi.price(ans.dx)
+                let ans3 = await curveAbi.burning(GWei, ans.dx.add(GWei))
                 console.debug(
                     '铸造消耗eth', ethers.utils.formatEther(nativeAsset),
-                    '生成erc20', ethers.utils.formatEther(ans2.dx),
+                    '生成erc20', ethers.utils.formatEther(ans.dx),
                     '销毁退还eth', ethers.utils.formatEther(ans2.dy),
                     '价格eth/erc20', ethers.utils.formatEther(price),
-                    '误差(wei)', nativeAsset.sub(ans2.dy).toString())
+                    '微分价格', ethers.utils.formatEther(ans3.dy.mul(Ether).div(ans3.dx)),
+                    '误差(wei)', nativeAsset.sub(ans2.dy).toString()
+                )
+                expect(ans3.dy.mul(Ether).div(ans3.dx).sub(price).abs().lt(price.div(1000)),'价格公式误差与微元法计算误差应当小于 1 %。').to.true
             }
             // 测试10000000 erc20=> 2000 eth
             await testOne(Ether.mul(2000))

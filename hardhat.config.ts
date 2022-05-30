@@ -27,6 +27,7 @@ extendEnvironment(async (hre: any) => {
   let platform = signers[2]
   hre.platform = platform;
   hre.treasury = treasury;
+  
   // const hotpotTokenAbi = ExpMixedHotpotToken__factory.connect(expAddr, signers[0])
   hre.expToken = async (mintRate, burnRate) => await initFactory(hre, "Exp", mintRate, burnRate);
   hre.linearToken = async (mintRate, burnRate) => await initFactory(hre, "Linear", mintRate, burnRate);
