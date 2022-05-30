@@ -5,13 +5,10 @@ const Wei = ethers.BigNumber.from('1')
 const GWei = ethers.BigNumber.from('1000000000')
 const Ether = ethers.BigNumber.from('1000000000000000000')
 
-// 验证算子正确性，单次铸造并单次销毁
-// mining(uint256 nativeTokens, uint256 erc20Supply)
-// burning(uint256 erc20Tokens, uint256 erc20Supply)
 describe("验证 Doomsday 销毁功能", async () => {
-    await hre.network.provider.send("hardhat_reset")
     describe('Exp Mixed Hotpot Token', async () => {
         it("校验 unpause 情况下 doomsday 功能", async () => {
+            await hre.network.provider.send("hardhat_reset")
             let signers = await ethers.getSigners()
             let buyer = signers[0]
             const hotpotTokenAbi = await hre.expToken(500,1000)

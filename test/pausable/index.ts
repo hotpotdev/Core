@@ -5,14 +5,12 @@ const Wei = ethers.BigNumber.from('1')
 const GWei = ethers.BigNumber.from('1000000000')
 const Ether = ethers.BigNumber.from('1000000000000000000')
 const hre=require("hardhat")
-// 验证算子正确性，单次铸造并单次销毁
-// mining(uint256 nativeTokens, uint256 erc20Supply)
-// burning(uint256 erc20Tokens, uint256 erc20Supply)
+
 describe("验证 Pausable 暂停功能", async () => {
 
-    await hre.network.provider.send("hardhat_reset")
     describe('Exp Mixed Hotpot Token', async () => {
         it("校验 pause 功能", async () => {
+            await hre.network.provider.send("hardhat_reset")
             let signers = await ethers.getSigners()
             let buyer = signers[0]
             await network.provider.send("hardhat_setBalance", [buyer.address, Ether.mul(100000000)._hex.replace(/0x0+/, '0x')])

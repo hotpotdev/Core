@@ -5,9 +5,7 @@ const Wei = ethers.BigNumber.from('1')
 const GWei = ethers.BigNumber.from('1000000000')
 const Ether = ethers.BigNumber.from('1000000000000000000')
 const hre = require("hardhat");
-// 验证算子正确性，单次铸造并单次销毁
-// mining(uint256 nativeTokens, uint256 erc20Supply)
-// burning(uint256 erc20Tokens, uint256 erc20Supply)
+
 describe("验证 Mint Cap 铸造限制", async () => {
 
     describe('Exp Mixed Hotpot Token', async () => {

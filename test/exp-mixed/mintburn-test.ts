@@ -7,15 +7,13 @@ const GWei = ethers.BigNumber.from('1000000000')
 const Ether = ethers.BigNumber.from('1000000000000000000')
 
 const round = 10
-// 验证算子正确性，单次铸造并单次销毁
-// mining(uint256 nativeTokens, uint256 erc20Supply)
-// burning(uint256 erc20Tokens, uint256 erc20Supply)
+
 describe("HotpotToken 大规模铸造销毁测试", async () => {
 
-    await hre.network.provider.send("hardhat_reset")
     describe('Exp Mixed Hotpot Token', async () => {
 
         it("样例 mint 与 burn 方法 个人单买多轮", async () => {
+            await hre.network.provider.send("hardhat_reset")
             let signers = await ethers.getSigners()
             let buyer = signers[3]
             const hotpotTokenAbi = await hre.expToken(100,100)
@@ -48,6 +46,7 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
         })
 
         it("样例 mint 与 burn 方法 个人单卖多轮", async () => {
+            await hre.network.provider.send("hardhat_reset")
             let signers = await ethers.getSigners()
             let buyer = signers[3]
             const hotpotTokenAbi = await hre.expToken(100,100)
@@ -83,6 +82,7 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
         })
 
         it("样例 大规模 mint 与 burn 方法 买卖混合多轮测试", async () => {
+            await hre.network.provider.send("hardhat_reset")
             let signers = await ethers.getSigners()
             let buyer1 = signers[3]
             let buyer2 = signers[4]

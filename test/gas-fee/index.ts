@@ -5,28 +5,26 @@ const Wei = ethers.BigNumber.from('1')
 const GWei = ethers.BigNumber.from('1000000000')
 const Ether = ethers.BigNumber.from('1000000000000000000')
 
-// 验证算子正确性，单次铸造并单次销毁
-// mining(uint256 nativeTokens, uint256 erc20Supply)
-// burning(uint256 erc20Tokens, uint256 erc20Supply)
 describe("验证 Gas Fee 的收取", async () => {
 
-    await hre.network.provider.send("hardhat_reset")
     describe('Exp Mixed Hotpot Token', async () => {
         it("校验 mint 与 burn 方法 国库手续费", async () => {
+            await hre.network.provider.send("hardhat_reset")
             let signers = await ethers.getSigners()
+            let buyer = signers[0]
             const hotpotTokenAbi = await hre.expToken(500,1000)
             // mint 1 eth
             await network.provider.send("hardhat_setBalance", [hre.treasury.address, '0x0'])
-            let mintTx1 = await hotpotTokenAbi.connect(signers[0]).mint(signers[0].address, 0, { value: Ether })
+            let mintTx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: Ether })
             await mintTx1.wait()
             let balance2 = await hre.treasury.getBalance()
             console.log('mintRate (', hre.mintRate, '/ 10000 ) mint 消耗 eth 1', 'treasury 获得 eth', ethers.utils.formatEther(balance2))
             expect(Ether.mul(hre.mintRate).div(10000).eq(balance2), '国库 mint 手续费计算错误').to.true
             // burn
             await network.provider.send("hardhat_setBalance", [hre.treasury.address, '0x0'])
-            let erc20Balance3 = await hotpotTokenAbi.balanceOf(signers[0].address)
+            let erc20Balance3 = await hotpotTokenAbi.balanceOf(buyer.address)
             let asset4 = await ethers.provider.getBalance(hotpotTokenAbi.address)
-            let burnTx2 = await hotpotTokenAbi.connect(signers[0]).burn(signers[0].address, erc20Balance3)
+            let burnTx2 = await hotpotTokenAbi.connect(buyer).burn(buyer.address, erc20Balance3)
             await burnTx2.wait()
             let asset5 = await ethers.provider.getBalance(hotpotTokenAbi.address)
             let balance6 = await hre.treasury.getBalance()
@@ -36,19 +34,20 @@ describe("验证 Gas Fee 的收取", async () => {
 
         it("校验 mint 与 burn 方法 平台手续费", async () => {
             let signers = await ethers.getSigners()
+            let buyer = signers[0]
             const hotpotTokenAbi = await hre.expToken(100,100)
             // mint 1 eth
             await network.provider.send("hardhat_setBalance", [hre.platform.address, '0x0'])
-            let mintTx1 = await hotpotTokenAbi.connect(signers[0]).mint(signers[0].address, 0, { value: Ether })
+            let mintTx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: Ether })
             await mintTx1.wait()
             let balance2 = await hre.platform.getBalance()
             console.log('mintRate (', hre.mintRate, '/ 10000 ) mint 消耗 eth 1', 'platform 获得 eth', ethers.utils.formatEther(balance2))
             expect(Ether.mul(100).div(10000).eq(balance2), '平台 mint 手续费计算错误').to.true
             // burn 
             await network.provider.send("hardhat_setBalance", [hre.platform.address, '0x0'])
-            let erc20Balance3 = await hotpotTokenAbi.balanceOf(signers[0].address)
+            let erc20Balance3 = await hotpotTokenAbi.balanceOf(buyer.address)
             let asset4 = await ethers.provider.getBalance(hotpotTokenAbi.address)
-            let burnTx2 = await hotpotTokenAbi.connect(signers[0]).burn(signers[0].address, erc20Balance3)
+            let burnTx2 = await hotpotTokenAbi.connect(buyer).burn(buyer.address, erc20Balance3)
             await burnTx2.wait()
             let asset5 = await ethers.provider.getBalance(hotpotTokenAbi.address)
             let balance6 = await hre.platform.getBalance()
