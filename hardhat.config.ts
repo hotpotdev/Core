@@ -86,6 +86,10 @@ const config: HardhatUserConfig = {
         accountsBalance: "200000000000000000000001"
       },
     },
+    gpnode: {
+      url: process.env.GPNODE_URL || "",
+      accounts: [],
+    },
     ropsten: {
       url: process.env.ROPSTEN_URL || ""
     },

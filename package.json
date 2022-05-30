@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "hardhat test --grep '验证'",
-    "remix": "remixd -s ./ ./node_modules/@openzeppelin --remix-ide http://remix.app.hubwiz.com/"
+    "remix": "remixd -s ./ ./node_modules/@openzeppelin --remix-ide http://remix.app.hubwiz.com/",
+    "solc-abi": "solcjs --abi --include-path node_modules/ --base-path . contracts\\HotpotTokenFactory.sol -o ./abi/"
   },
   "keywords": [],
   "author": "",
@@ -41,12 +42,13 @@
     "solidity-coverage": "^0.7.16",
     "ts-node": "^10.1.0",
     "typechain": "^5.1.2",
-    "typescript": "^4.5.2"
+    "typescript": "^4.5.2",
+    "@remix-project/remixd": "^0.5.7",
+    "solc": "^0.8.13-fixed"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.6.0",
     "@openzeppelin/contracts-upgradeable": "^4.6.0",
-    "@remix-project/remixd": "^0.5.7",
     "mocha": "^10.0.0",
     "web3": "^1.7.3"
   }
