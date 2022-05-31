@@ -22,13 +22,13 @@ interface IHotpotERC20 is IHotpotToken {
 }
 
 contract HotpotTokenFactory is IHotpotFactory, Initializable {
-    address _platform;
-    mapping(string => address) _implementsMap;
-    mapping(uint256 => address) tokens;
-    mapping(address => string) tokensType;
-    mapping(address => address) tokensTreasury;
-    uint256 tokensLength;
-    ProxyAdmin _proxyAdmin;
+    address private _platform;
+    mapping(string => address) private _implementsMap;
+    mapping(uint256 => address) private tokens;
+    mapping(address => string) private tokensType;
+    
+    uint256 private tokensLength;
+    ProxyAdmin private _proxyAdmin;
     modifier onlyPlatform() {
         require(msg.sender == _platform);
         _;
@@ -70,7 +70,7 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable {
             mintCap,
             data
         );
-        require(_implementsMap[tokenType] != address(0), "token type has no implement");
+        require(_implementsMap[tokenType] != address(0), "Deploy Failed: token type has no implement");
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
             _implementsMap[tokenType],
             address(_proxyAdmin),
@@ -79,7 +79,6 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable {
         tokens[tokensLength] = address(proxy);
         tokensLength++;
         tokensType[address(proxy)] = tokenType;
-        tokensTreasury[address(proxy)] = treasury;
 
         emit TokenDeployed(tokenType, address(proxy), burnRate, mintRate, treasury, data, mintCap);
         return address(proxy);
@@ -108,21 +107,18 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable {
 
     function declareDoomsday(address proxyAddress) external override onlyPlatform {
         IHotpotERC20(proxyAddress).declareDoomsday();
-        emit DoomsDayDeclared(proxyAddress);
     }
 
     function pause(address proxyAddress) external override onlyPlatform {
         IHotpotERC20(proxyAddress).pause();
-        emit TokenPaused(proxyAddress);
     }
 
     function unpause(address proxyAddress) external override onlyPlatform {
         IHotpotERC20(proxyAddress).unpause();
-        emit TokenUnpaused(proxyAddress);
     }
 
     function upgradeTokenImplement(address proxyAddress, bytes calldata data) external payable override {
-        require(msg.sender == _platform || msg.sender == tokensTreasury[proxyAddress], "not auth");
+        require(msg.sender == _platform, "Upgrade Failed: Permission Not Allowed");
         _proxyAdmin.upgradeAndCall{value: msg.value}(
             TransparentUpgradeableProxy(payable(proxyAddress)),
             _implementsMap[tokensType[proxyAddress]],

@@ -11,12 +11,12 @@ import "./libraries/ABDKMath.sol";
 
 contract LinearMixedBondingSwap is IBondingCurve {
     using ABDKMath for uint256;
-    uint256 immutable k;
-    uint256 immutable p;
+    uint256 public immutable k;
+    uint256 public immutable p;
 
     constructor(uint256 _k, uint256 _p) {
-        require(_k < 10000 && _k > 0, "Create: Invalid k");
-        require(_p < 1e24 && _p >= 0, "Create: Invalid p");
+        require(_k <= 100000 && _k > 0, "Create: Invalid k");
+        require(_p <= 1e24 && _p >= 0, "Create: Invalid p");
         k = _k;
         p = _p;
     }
@@ -57,7 +57,8 @@ contract LinearMixedHotpotToken is ERC20HotpotMixed {
         uint256 mintCap,
         bytes calldata data
     ) public initializer {
-        require(_factory == address(0), "factory has been set");
+        require(_factory == address(0), "Initialize: factory has been set");
+        require(mintCap <= 1e30, "Initialize: mint Cap too large");
         super.initialize(name, symbol, treasury, mintRate, burnRate, msg.sender, hasPreMint, mintCap);
         (uint256 k, uint256 p) = abi.decode(data, (uint256, uint256));
         LinearMixedBondingSwap curve = new LinearMixedBondingSwap(k, p);
