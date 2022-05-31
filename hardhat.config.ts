@@ -44,7 +44,7 @@ async function initFactory(hre: any, type, mintRate, burnRate) {
   let hotpotFactoryContract = "HotpotTokenFactory"
   const { ethers, upgrades } = require("hardhat");
   const HotpotFactory = await hre.ethers.getContractFactory(hotpotFactoryContract)
-  const factory=await upgrades.deployProxy(HotpotFactory,[hre.platform.address])
+  const factory = await upgrades.deployProxy(HotpotFactory,[hre.platform.address])
   hre.factory = factory
   const expToken = await hre.ethers.getContractFactory(expTokenContract);
   const exp = await expToken.deploy();
@@ -88,7 +88,6 @@ const config: HardhatUserConfig = {
     },
     gpnode: {
       url: process.env.GPNODE_URL || "",
-      accounts: [],
     },
     ropsten: {
       url: process.env.ROPSTEN_URL || ""

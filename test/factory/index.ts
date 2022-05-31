@@ -18,6 +18,7 @@ describe("Factory Function Test", async () => {
         let linearTokenContract="LinearMixedHotpotToken"
         const expToken = await hre.ethers.getContractFactory(expTokenContract);
         const exp = await expToken.deploy();
+        await exp.deployed()
 
         expect(hre.factory.connect(hre.treasury).addImplement("Exp",exp.address), '非 platform 用户不可 addImplement').to.reverted
 
