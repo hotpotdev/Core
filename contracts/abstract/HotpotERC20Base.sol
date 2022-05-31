@@ -5,6 +5,7 @@ pragma solidity 0.8.13;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
+
 // diy
 import "./SwapCurve.sol";
 import "./HotpotMetadata.sol";
@@ -16,7 +17,9 @@ abstract contract HotpotERC20Base is
     AccessControlUpgradeable
 {
     bytes32 public constant FACTORY_ROLE = keccak256("FACTORY_ROLE");
-    bytes32 public constant PROJECT_ROLE = keccak256("PROJECT_ROLE");
+    
+    bytes32 public constant PROJECT_ADMIN_ROLE = keccak256("PROJECT_ADMIN_ROLE");
+    bytes32 public constant PROJECT_MANAGER_ROLE = keccak256("PROJECT_MANAGER_ROLE");
     bytes32 public constant PREMINT_ROLE = keccak256("PREMINT_ROLE");
 
     address internal _treasury = 0x0000000000000000000000000000000000000000;
@@ -46,14 +49,14 @@ abstract contract HotpotERC20Base is
         return _treasury;
     }
 
-    function setMetadata(string memory url) public onlyRole(PROJECT_ROLE) {
+    function setMetadata(string memory url) public onlyRole(PROJECT_MANAGER_ROLE) {
         _setMetadata(url);
     }
 
-    function normalizeMint() public onlyRole(PROJECT_ROLE) {
+    function normalizeMint() public onlyRole(PROJECT_MANAGER_ROLE) {
         _normalizeMint();
     }
-
+    
     function pause() public onlyRole(FACTORY_ROLE) {
         _pause();
     }
@@ -68,8 +71,16 @@ abstract contract HotpotERC20Base is
         }
         _declareDoomsday();
     }
+    
+    function setTreasury(address newAdmin) public onlyRole(PROJECT_ADMIN_ROLE) {
+        require(newAdmin != address(0), "Invalid Address");
+        _grantRole(PROJECT_ADMIN_ROLE, newAdmin);
+        _revokeRole(PROJECT_ADMIN_ROLE, _treasury);
+        _treasury = newAdmin;
+        emit TreasuryAdminChanged(newAdmin);
+    }
 
-    function destroyForDoomsday() public onlyRole(PROJECT_ROLE) {
+    function destroyForDoomsday() public onlyRole(PROJECT_ADMIN_ROLE) {
         _destroy();
     }
 
@@ -117,4 +128,5 @@ abstract contract HotpotERC20Base is
     event StopPremint(address account);
     event DeclareDoomsday(address account);
     event Destroyed(address account);
+    event TreasuryAdminChanged(address newAccount);
 }

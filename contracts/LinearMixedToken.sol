@@ -52,12 +52,10 @@ contract LinearMixedHotpotToken is ERC20HotpotMixed {
         address treasury,
         uint256 mintRate,
         uint256 burnRate,
-        address factory,
         bool hasPreMint,
         uint256 mintCap,
         bytes calldata data
     ) public initializer {
-        require(_factory == address(0), "Initialize: factory has been set");
         require(mintCap <= 1e30, "Initialize: mint Cap too large");
         super.initialize(name, symbol, treasury, mintRate, burnRate, msg.sender, hasPreMint, mintCap);
         (uint256 k, uint256 p) = abi.decode(data, (uint256, uint256));

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./interfaces/IHotpotFactory.sol";
 import "./interfaces/IHotpot.sol";
 import "./ExpMixedToken.sol";
@@ -14,25 +15,24 @@ interface IHotpotERC20 is IHotpotToken {
         address treasury,
         uint256 mintRate,
         uint256 burnRate,
-        address factory,
         bool hasPreMint,
         uint256 mintCap,
         bytes memory data
     ) external;
 }
 
-contract HotpotTokenFactory is IHotpotFactory, Initializable {
-    address private _platform;
+contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
+    bytes32 public constant PLATFORM_ADMIN_ROLE = keccak256("PLATFORM_ADMIN");
+    bytes32 public constant PLATFORM_MANAGER_ROLE = keccak256("PLATFORM_MANAGER");
+
     mapping(string => address) private _implementsMap;
     mapping(uint256 => address) private tokens;
     mapping(address => string) private tokensType;
-    
+ 
     uint256 private tokensLength;
+
+    address private _platform;   
     ProxyAdmin private _proxyAdmin;
-    modifier onlyPlatform() {
-        require(msg.sender == _platform);
-        _;
-    }
 
     receive() external payable {
         // console.log(msg.value);
@@ -43,6 +43,9 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable {
     fallback() external payable {}
 
     function initialize(address platform) public initializer {
+        _setRoleAdmin(PLATFORM_MANAGER_ROLE, PLATFORM_ADMIN_ROLE);
+        _grantRole(PLATFORM_ADMIN_ROLE, platform);
+        _grantRole(PLATFORM_MANAGER_ROLE, platform);
         _platform = platform;
         _proxyAdmin = new ProxyAdmin();
     }
@@ -65,7 +68,6 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable {
             treasury,
             mintRate,
             burnRate,
-            address(this),
             hasPreMint,
             mintCap,
             data
@@ -84,7 +86,7 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable {
         return address(proxy);
     }
 
-    function addImplement(string memory tokenType, address impl) public onlyPlatform {
+    function addImplement(string memory tokenType, address impl) public onlyRole(PLATFORM_MANAGER_ROLE) {
         _implementsMap[tokenType] = impl;
         emit TokenTypeImplAdded(tokenType, impl);
     }
@@ -97,7 +99,7 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable {
         len = tokensLength;
     }
 
-    function getTokens(uint256 index) public view returns (address addr) {
+    function getToken(uint256 index) public view returns (address addr) {
         addr = tokens[index];
     }
 
@@ -105,15 +107,23 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable {
         return _platform;
     }
 
-    function declareDoomsday(address proxyAddress) external override onlyPlatform {
+    function setPlatform(address newAdmin) public onlyRole(PLATFORM_ADMIN_ROLE) {
+        require(newAdmin != address(0), "Invalid Address");
+        _grantRole(PLATFORM_ADMIN_ROLE, newAdmin);
+        _revokeRole(PLATFORM_ADMIN_ROLE, _platform);
+        _platform = newAdmin;
+        emit PlatformAdminChanged(newAdmin);
+    }
+
+    function declareDoomsday(address proxyAddress) external override onlyRole(PLATFORM_MANAGER_ROLE) {
         IHotpotERC20(proxyAddress).declareDoomsday();
     }
 
-    function pause(address proxyAddress) external override onlyPlatform {
+    function pause(address proxyAddress) external override onlyRole(PLATFORM_MANAGER_ROLE) {
         IHotpotERC20(proxyAddress).pause();
     }
 
-    function unpause(address proxyAddress) external override onlyPlatform {
+    function unpause(address proxyAddress) external override onlyRole(PLATFORM_MANAGER_ROLE) {
         IHotpotERC20(proxyAddress).unpause();
     }
 

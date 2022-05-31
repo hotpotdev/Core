@@ -19,7 +19,7 @@ interface IHotpotFactory {
 
     function getTokensLength() external view returns (uint256 len);
 
-    function getTokens(uint256 index) external view returns (address addr);
+    function getToken(uint256 index) external view returns (address addr);
 
     function getPlatform() external view returns (address);
 
@@ -43,11 +43,7 @@ interface IHotpotFactory {
 
     event TokenImplementUpgraded(address proxyAddress, string tokenType, address implementAddr, bytes data);
 
-    event DoomsDayDeclared(address addr);
-
-    event TokenPaused(address addr);
-
-    event TokenUnpaused(address addr);
-
     event TokenTypeImplAdded(string tokenType, address impl);
+    
+    event PlatformAdminChanged(address newAccount);
 }

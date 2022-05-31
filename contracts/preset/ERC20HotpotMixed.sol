@@ -5,11 +5,10 @@ pragma solidity 0.8.13;
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "hardhat/console.sol";
-
 // diy
 import "../abstract/HotpotERC20Base.sol";
 import "../interfaces/IHotpotSwap.sol";
+
 
 abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGuard {
     uint256 internal constant MAX_GAS_RATE_DENOMINATOR = 10000;
@@ -36,9 +35,14 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGu
         _setTaxRate(mintRate, burnRate);
 
         _setupRole(FACTORY_ROLE, factory);
-        _setupRole(PROJECT_ROLE, treasury);
+
+        _setupRole(PROJECT_ADMIN_ROLE, treasury);
+        _setupRole(PROJECT_MANAGER_ROLE, treasury);
         _setupRole(PREMINT_ROLE, treasury);
-        _setRoleAdmin(PREMINT_ROLE, PROJECT_ROLE);
+
+        _setRoleAdmin(PREMINT_ROLE, PROJECT_ADMIN_ROLE);
+        _setRoleAdmin(PROJECT_MANAGER_ROLE, PROJECT_ADMIN_ROLE);
+        
         _initPremint(hasPreMint);
         _setMintCap(mintCap);
     }
@@ -145,7 +149,7 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGu
             }
         }
 
-        emit Burned(from, dx, dy, platformFee, projectFee);
+        emit Burned(from, dx, leftNative, platformFee, projectFee);
     }
 
     function estimateBurn(uint256 erc20Tokens)

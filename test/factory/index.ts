@@ -10,7 +10,7 @@ const Ether = ethers.BigNumber.from('1000000000000000000')
 // mining(uint256 nativeTokens, uint256 erc20Supply)
 // burning(uint256 erc20Tokens, uint256 erc20Supply)
 describe("Factory Function Test", async () => {
-    it("Factory upgrade test", async () => {
+    it("Factory 升级 测试", async () => {
         const signers = await hre.ethers.getSigners();
         const tokenProxy = await hre.expToken(100, 100);
         const platform = await hre.factory.getPlatform();
@@ -24,8 +24,8 @@ describe("Factory Function Test", async () => {
 
         expect(hre.factory.connect(hre.platform).addImplement("Exp",exp.address), 'platform 用户可 addImplement').to.ok
         // console.log()
-        expect(tokenProxy.connect(signers[signers.length - 1])["initialize(string,string,address,uint256,uint256,address,bool,uint256,bytes)"]
-            ("TET2", "TET2", hre.treasury.address, 2000, 2000, signers[signers.length - 1].address, false, Ether.mul('50000000'), []), "proxy can not init twice").to.reverted
+        expect(tokenProxy.connect(signers[signers.length - 1])["initialize(string,string,address,uint256,uint256,bool,uint256,bytes)"]
+            ("TET2", "TET2", hre.treasury.address, 2000, 2000, false, Ether.mul('50000000'), []), "proxy can not init twice").to.reverted
 
         expect(hre.factory.connect(signers[signers.length - 1]).upgradeTokenImplement(tokenProxy.address, []), '非 platform/treasury 用户不可 upgradeTokenImplement').to.reverted
 

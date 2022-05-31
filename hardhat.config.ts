@@ -59,8 +59,8 @@ async function initFactory(hre: any, type, mintRate, burnRate) {
   hre.burnRate = burnRate;
   await hre.factory.connect(hre.platform).deployToken("Exp", "TET", "TET", hre.treasury.address, mintRate, burnRate, false, Ether.mul('25000000'), []);
   await hre.factory.connect(hre.platform).deployToken("Linear", "TLT", "TLT", hre.treasury.address, mintRate, burnRate, false, Ether.mul('25000000'), data);
-  const expAddr = await hre.factory.getTokens(0);
-  const linearAddr = await hre.factory.getTokens(1);
+  const expAddr = await hre.factory.getToken(0);
+  const linearAddr = await hre.factory.getToken(1);
   // console.log("exp address:", expAddr)
   // console.log("linear address:", linearAddr)
   switch (type) {
