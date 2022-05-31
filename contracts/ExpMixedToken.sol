@@ -81,7 +81,7 @@ contract ExpMixedHotpotToken is ERC20HotpotMixed {
         uint256 mintCap,
         bytes calldata data
     ) public initializer {
-        require(_factory == address(0), "factory has been set");
+        require(_factory == address(0), "Initialize: factory has been set");
         super.initialize(name, symbol, treasury, mintRate, burnRate, msg.sender, hasPreMint, mintCap);
         ExpMixedBondingSwap curve = new ExpMixedBondingSwap();
         _changeCoinMaker(address(curve));

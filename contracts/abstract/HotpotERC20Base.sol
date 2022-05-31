@@ -86,10 +86,12 @@ abstract contract HotpotERC20Base is
     }
 
     function _initTreasury(address account) internal {
+        require(account != address(0), "Invalid Treasury Address");
         _treasury = account;
     }
 
     function _initFactory(address account) internal {
+        require(account != address(0), "Invalid Treasury Address");
         _factory = account;
     }
 

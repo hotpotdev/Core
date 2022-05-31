@@ -70,7 +70,7 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable {
             mintCap,
             data
         );
-        require(_implementsMap[tokenType] != address(0), "token type has no implement");
+        require(_implementsMap[tokenType] != address(0), "Deploy Failed: token type has no implement");
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
             _implementsMap[tokenType],
             address(_proxyAdmin),
@@ -122,7 +122,7 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable {
     }
 
     function upgradeTokenImplement(address proxyAddress, bytes calldata data) external payable override {
-        require(msg.sender == _platform || msg.sender == tokensTreasury[proxyAddress], "not auth");
+        require(msg.sender == _platform || msg.sender == tokensTreasury[proxyAddress], "Upgrade Failed: not auth");
         _proxyAdmin.upgradeAndCall{value: msg.value}(
             TransparentUpgradeableProxy(payable(proxyAddress)),
             _implementsMap[tokensType[proxyAddress]],
