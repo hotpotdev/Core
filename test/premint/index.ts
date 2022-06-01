@@ -1,25 +1,24 @@
 import { expect } from "chai"
 import { ethers, network } from "hardhat"
 import { ExpMixedHotpotToken__factory } from "../../typechain"
+import { defines } from "../../hardhat.config"
 
-const Wei = ethers.BigNumber.from('1')
-const GWei = ethers.BigNumber.from('1000000000')
-const Ether = ethers.BigNumber.from('1000000000000000000')
 const hre=require("hardhat")
+const Ether = defines.Unit.Ether
+const Id = defines.Id
 
 describe("验证 Token Premint 功能", async () => {
 
     describe('Mixed Hotpot Token', async () => {
         it("校验 premint 功能", async () => {
-            await hre.network.provider.send("hardhat_reset")
             let signers = await ethers.getSigners()
-            let buyer = signers[0]
-            let treasury = hre.treasury
-            let platform = hre.platform
-            let premintRole = signers[5]
+            let buyer = signers[Id.Buyer]
+            let treasury = signers[Id.Treasury]
+            let platform = signers[Id.Platform]
+            let premintRole = signers[Id.Buyer2]
             await network.provider.send("hardhat_setBalance", [buyer.address, Ether.mul(100000000)._hex.replace(/0x0+/, '0x')])
-            await network.provider.send("hardhat_setBalance", [hre.treasury.address, Ether._hex.replace(/0x0+/, '0x')])
-            await network.provider.send("hardhat_setBalance", [hre.platform.address, Ether._hex.replace(/0x0+/, '0x')])
+            await network.provider.send("hardhat_setBalance", [treasury.address, Ether._hex.replace(/0x0+/, '0x')])
+            await network.provider.send("hardhat_setBalance", [platform.address, Ether._hex.replace(/0x0+/, '0x')])
             const token = await hre.expToken(500,1000,true)
             const hotpotTokenAbi = await ExpMixedHotpotToken__factory.connect(token.address,buyer)
 

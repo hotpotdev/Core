@@ -1,9 +1,11 @@
 import { expect } from "chai"
 import { ethers, network } from "hardhat"
+import { defines } from "../../hardhat.config"
 
-const Wei = ethers.BigNumber.from('1')
-const GWei = ethers.BigNumber.from('1000000000')
-const Ether = ethers.BigNumber.from('1000000000000000000')
+const Ether = defines.Unit.Ether
+const GWei = defines.Unit.GWei
+const Wei = defines.Unit.Wei
+const Id = defines.Id
 
 // 验证算子正确性，单次铸造并单次销毁
 // mining(uint256 nativeTokens, uint256 erc20Supply)

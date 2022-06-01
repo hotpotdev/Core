@@ -1,6 +1,7 @@
 import * as dotenv from "dotenv";
 
 import { extendEnvironment, HardhatUserConfig, task } from "hardhat/config";
+import { ethers } from "ethers";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
@@ -23,12 +24,10 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 extendEnvironment(async (hre: any) => {
   
   let signers = await hre.ethers.getSigners()
-  let treasury = signers[1]
-  let platform = signers[2]
-  hre.platform = platform;
-  hre.treasury = treasury;
-  const DefaultMintCap = hre.ethers.BigNumber.from('25000000000000000000000000')
-  // const hotpotTokenAbi = ExpMixedHotpotToken__factory.connect(expAddr, signers[0])
+  hre.platform = signers[defines.Id.Platform]
+  hre.treasury = signers[defines.Id.Treasury]
+  
+  const DefaultMintCap = defines.Unit.Ether.mul(25000000)
   hre.expToken = async (mintRate, burnRate,premint=false, mintCap=DefaultMintCap) => 
     await initFactory(hre, "Exp", mintRate, burnRate,premint,mintCap);
   hre.linearToken = async (mintRate, burnRate,premint=false, mintCap=DefaultMintCap) => 
@@ -41,9 +40,12 @@ async function initFactory(hre: any, type, mintRate, burnRate, premint,mintCap) 
   hre.web3 = new Web3(hre.network.provider);
   let expTokenContract="ExpMixedHotpotToken"
   let linearTokenContract="LinearMixedHotpotToken"
+  const {  network,upgrades } = require("hardhat");
+
+  await network.provider.send("hardhat_setBalance", [hre.treasury.address, defines.Unit.Ether.mul(100)._hex.replace(/0x0+/, '0x')])
+  await network.provider.send("hardhat_setBalance", [hre.platform.address, defines.Unit.Ether.mul(100)._hex.replace(/0x0+/, '0x')])
 
   let hotpotFactoryContract = "HotpotTokenFactory"
-  const { ethers, upgrades } = require("hardhat");
   const HotpotFactory = await hre.ethers.getContractFactory(hotpotFactoryContract)
   const factory = await upgrades.deployProxy(HotpotFactory,[hre.platform.address])
   hre.factory = factory
@@ -112,3 +114,20 @@ const config: HardhatUserConfig = {
 };
 
 export default config;
+
+export const defines = {
+    Unit: {
+        Wei : ethers.BigNumber.from('1'),
+        GWei : ethers.BigNumber.from('1000000000'),
+        Ether : ethers.BigNumber.from('1000000000000000000')
+    },
+    Id: {
+        Treasury: 1,
+        Platform: 2,
+        Buyer: 3,
+        Buyer1: 4,
+        Buyer2: 5,
+        Buyer3: 6,
+        Default: 7,
+    }
+}

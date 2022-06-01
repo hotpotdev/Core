@@ -1,11 +1,11 @@
 import { expect } from "chai"
 import { ethers, network } from "hardhat"
+import { defines } from "../../hardhat.config";
 import { ExpMixedHotpotToken__factory } from "../../typechain";
 
 const hre = require("hardhat");
-const Wei = ethers.BigNumber.from('1')
-const GWei = ethers.BigNumber.from('1000000000')
-const Ether = ethers.BigNumber.from('1000000000000000000')
+const Ether = defines.Unit.Ether
+const Id = defines.Id
 
 const round = 10
 
@@ -14,21 +14,22 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
     describe('Exp Mixed Hotpot Token', async () => {
 
         it("样例 mint 与 burn 方法 个人单买多轮", async () => {
-            await hre.network.provider.send("hardhat_reset")
             let signers = await ethers.getSigners()
-            let buyer = signers[3]
+            let buyer = signers[Id.Buyer]
+            let treasury = signers[Id.Treasury]
+            let platform = signers[Id.Platform]
             const token = await hre.expToken(100,100)
             const hotpotTokenAbi = await ExpMixedHotpotToken__factory.connect(token.address,buyer)
             
-            await network.provider.send("hardhat_setBalance", [hre.treasury.address, '0x0'])
-            await network.provider.send("hardhat_setBalance", [hre.platform.address, '0x0'])
+            await network.provider.send("hardhat_setBalance", [treasury.address, '0x0'])
+            await network.provider.send("hardhat_setBalance", [platform.address, '0x0'])
             await network.provider.send("hardhat_setBalance", [buyer.address, Ether.mul(100000000)._hex.replace(/0x0+/, '0x')])
 
             for (let i = 0; i < round; i++) {
                 let mintTx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: Ether.mul(1000) })
                 await mintTx1.wait()
-                let platformBalance = await hre.platform.getBalance()
-                let treasuryBalance = await hre.treasury.getBalance()
+                let platformBalance = await platform.getBalance()
+                let treasuryBalance = await treasury.getBalance()
                 let contractAsset = await ethers.provider.getBalance(hotpotTokenAbi.address)
                 let buyerBalance = await buyer.getBalance()
                 let erc20Balance = await hotpotTokenAbi.balanceOf(buyer.address)
@@ -48,22 +49,23 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
         })
 
         it("样例 mint 与 burn 方法 个人单卖多轮", async () => {
-            await hre.network.provider.send("hardhat_reset")
             let signers = await ethers.getSigners()
-            let buyer = signers[3]
+            let buyer = signers[Id.Buyer]
+            let treasury = signers[Id.Treasury]
+            let platform = signers[Id.Platform]
             const token = await hre.expToken(100,100)
             const hotpotTokenAbi = await ExpMixedHotpotToken__factory.connect(token.address,buyer)
 
-            await network.provider.send("hardhat_setBalance", [hre.treasury.address, '0x0'])
-            await network.provider.send("hardhat_setBalance", [hre.platform.address, '0x0'])
+            await network.provider.send("hardhat_setBalance", [treasury.address, '0x0'])
+            await network.provider.send("hardhat_setBalance", [platform.address, '0x0'])
             await network.provider.send("hardhat_setBalance", [buyer.address, Ether.mul(100000000)._hex.replace(/0x0+/, '0x')])
             let mintTx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: Ether.mul(500000) })
             await mintTx1.wait()
             let totalErc20Balance = await hotpotTokenAbi.balanceOf(buyer.address)
 
             for (let i = 0; i < round; i++) {
-                let platformBalance = await hre.platform.getBalance()
-                let treasuryBalance = await hre.treasury.getBalance()
+                let platformBalance = await platform.getBalance()
+                let treasuryBalance = await treasury.getBalance()
                 let contractAsset = await ethers.provider.getBalance(hotpotTokenAbi.address)
                 let buyerBalance = await buyer.getBalance()
                 let erc20Balance = await hotpotTokenAbi.balanceOf(buyer.address)
@@ -85,16 +87,18 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
         })
 
         it("样例 大规模 mint 与 burn 方法 买卖混合多轮测试", async () => {
-            await hre.network.provider.send("hardhat_reset")
             let signers = await ethers.getSigners()
-            let buyer1 = signers[3]
-            let buyer2 = signers[4]
-            let buyer3 = signers[5]
+            let treasury = signers[Id.Treasury]
+            let platform = signers[Id.Platform]
+            let buyer1 = signers[Id.Buyer1]
+            let buyer2 = signers[Id.Buyer2]
+            let buyer3 = signers[Id.Buyer3]
+            
             const token = await hre.expToken(100,100)
             const hotpotTokenAbi = await ExpMixedHotpotToken__factory.connect(token.address,buyer1)
 
-            await network.provider.send("hardhat_setBalance", [hre.treasury.address, '0x0'])
-            await network.provider.send("hardhat_setBalance", [hre.platform.address, '0x0'])
+            await network.provider.send("hardhat_setBalance", [treasury.address, '0x0'])
+            await network.provider.send("hardhat_setBalance", [platform.address, '0x0'])
             await network.provider.send("hardhat_setBalance", [buyer1.address, Ether.mul(100000000)._hex.replace(/0x0+/, '0x')])
             await network.provider.send("hardhat_setBalance", [buyer2.address, Ether.mul(100000000)._hex.replace(/0x0+/, '0x')])
             await network.provider.send("hardhat_setBalance", [buyer3.address, Ether.mul(100000000)._hex.replace(/0x0+/, '0x')])
@@ -126,8 +130,8 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
                         await burnTx3.wait()
                     }
                 }
-                let platformBalance = await hre.platform.getBalance()
-                let treasuryBalance = await hre.treasury.getBalance()
+                let platformBalance = await platform.getBalance()
+                let treasuryBalance = await treasury.getBalance()
                 let contractAsset = await ethers.provider.getBalance(hotpotTokenAbi.address)
                 let contractTotalSupply = await hotpotTokenAbi.totalSupply()
                 let estimateBurn = await hotpotTokenAbi.estimateBurn(contractTotalSupply)

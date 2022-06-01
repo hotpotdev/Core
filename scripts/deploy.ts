@@ -1,11 +1,11 @@
 import { ethers, network } from "hardhat";
+import { defines } from "../hardhat.config";
 import { ExpMixedHotpotToken__factory, HotpotTokenFactory__factory } from "../typechain";
 
 const hre = require('hardhat')
-const Wei = ethers.BigNumber.from('1')
-const GWei = ethers.BigNumber.from('1000000000')
-const Ether = ethers.BigNumber.from('1000000000000000000')
 const round = 10
+const Ether = defines.Unit.Ether
+const Id = defines.Id
 
 async function main() {
 
@@ -17,13 +17,13 @@ async function main() {
     let expTokenContract="ExpMixedHotpotToken"
     let linearTokenContract="LinearMixedHotpotToken"
     // Get Signers
-    const signers = await hre.ethers.getSigners();
-    const buyer = signers[0]
-    const treasury = hre.treasury
-    const platform = hre.platform
+    const signers = await ethers.getSigners();
+    const buyer = signers[Id.Buyer]
+    const treasury = signers[Id.Treasury]
+    const platform = signers[Id.Platform]
     // Reset Network Balance
-    await network.provider.send("hardhat_setBalance", [hre.treasury.address, Ether.mul(1000000)._hex.replace(/0x0+/, '0x')])
-    await network.provider.send("hardhat_setBalance", [hre.platform.address, Ether.mul(1000000)._hex.replace(/0x0+/, '0x')])
+    await network.provider.send("hardhat_setBalance", [treasury.address, Ether.mul(1000000)._hex.replace(/0x0+/, '0x')])
+    await network.provider.send("hardhat_setBalance", [platform.address, Ether.mul(1000000)._hex.replace(/0x0+/, '0x')])
     await network.provider.send("hardhat_setBalance", [buyer.address, Ether.mul(1000000)._hex.replace(/0x0+/, '0x')])
     // Deploy
     const tokenProxy = await hre.expToken(100, 100);
@@ -41,8 +41,8 @@ async function main() {
         let burnTx2 = await hotpotTokenAbi.connect(buyer).burn(buyer.address, totalErc20Balance.div(2))
         await burnTx2.wait()
 
-        let platformBalance = await hre.platform.getBalance()
-        let treasuryBalance = await hre.treasury.getBalance()
+        let platformBalance = await platform.getBalance()
+        let treasuryBalance = await treasury.getBalance()
         let contractAsset = await ethers.provider.getBalance(hotpotTokenAbi.address)
         let buyerBalance = await buyer.getBalance()
         let erc20Balance = await hotpotTokenAbi.balanceOf(buyer.address)
