@@ -71,19 +71,19 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGu
         if (premint()) {
             _checkRole(PREMINT_ROLE, _msgSender());
         }
-        uint256 dx;
-        uint256 dy = msg.value;
+        uint256 dErc20;
+        uint256 dNative = msg.value;
         // TODO abi Compatibility issues
-        require(1e9 <= dy, "Mint: value is too low");
-        uint256 projectFee = (dy * _treasuryMintFee) / MAX_GAS_RATE_DENOMINATOR;
-        uint256 platformFee = (dy * _platformMintFee) / MAX_GAS_RATE_DENOMINATOR;
-        uint256 leftNative = dy - projectFee - platformFee;
+        require(1e9 <= dNative, "Mint: value is too low");
+        uint256 projectFee = (dNative * _treasuryMintFee) / MAX_GAS_RATE_DENOMINATOR;
+        uint256 platformFee = (dNative * _platformMintFee) / MAX_GAS_RATE_DENOMINATOR;
+        uint256 leftNative = dNative - projectFee - platformFee;
         // Calculate the actual amount through Bonding Curve
-        (dx, dy) = _mining(leftNative, totalSupply());
-        require(dx > 1e9 && dy > 1e9, "Mint: token amount is too low");
-        require(totalSupply() + dx <= cap(), "Mint: exceed upper limit");
-        require(dx >= minimalErc20Token, "Mint: mint amount less than minimal expect");
-        _mint(to, dx);
+        (dErc20, dNative) = _mining(leftNative, totalSupply());
+        require(dErc20 > 1e9 && dNative > 1e9, "Mint: token amount is too low");
+        require(totalSupply() + dErc20 <= cap(), "Mint: exceed upper limit");
+        require(dErc20 >= minimalErc20Token, "Mint: mint amount less than minimal expect");
+        _mint(to, dErc20);
 
         {
             (bool success, ) = _factory.call{value: platformFee}("");
@@ -94,7 +94,7 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGu
             require(success, "Transfer: charge project gas failed");
         }
 
-        emit Mined(to, dx, dy, platformFee, projectFee);
+        emit Mined(to, dErc20, dNative, platformFee, projectFee);
     }
 
     /**
@@ -104,15 +104,15 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGu
         public
         view
         returns (
-            uint256 dx,
-            uint256 dy,
+            uint256 dErc20,
+            uint256 dNative,
             uint256 gasMint
         )
     {
         gasMint = (nativeTokens * _treasuryMintFee) / MAX_GAS_RATE_DENOMINATOR;
         gasMint = gasMint + (nativeTokens * _platformMintFee) / MAX_GAS_RATE_DENOMINATOR;
-        (dx, dy) = _mining(nativeTokens - gasMint, totalSupply());
-        return (dx, dy, gasMint);
+        (dErc20, dNative) = _mining(nativeTokens - gasMint, totalSupply());
+        return (dErc20, dNative, gasMint);
     }
 
     /**
@@ -121,18 +121,18 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGu
     function burn(address to, uint256 erc20Tokens) public whenNotPaused nonReentrant {
         // require(msg.value == 0, "Burn: dont need to attach ether");
         address from = _msgSender();
-        uint256 dx = erc20Tokens;
-        uint256 dy;
+        uint256 dErc20 = erc20Tokens;
+        uint256 dNative;
         // Calculate the actual amount through Bonding Curve
-        (dx, dy) = _burning(erc20Tokens, totalSupply());
-        require(dx > 1e9 && dy > 1e9, "Balance: token amount is too low");
+        (dErc20, dNative) = _burning(erc20Tokens, totalSupply());
+        require(dErc20 > 1e9 && dNative > 1e9, "Balance: token amount is too low");
 
-        uint256 projectFee = (dy * _treasuryBurnFee) / MAX_GAS_RATE_DENOMINATOR;
-        uint256 platformFee = (dy * _platformBurnFee) / MAX_GAS_RATE_DENOMINATOR;
-        uint256 leftNative = dy - projectFee - platformFee;
+        uint256 projectFee = (dNative * _treasuryBurnFee) / MAX_GAS_RATE_DENOMINATOR;
+        uint256 platformFee = (dNative * _platformBurnFee) / MAX_GAS_RATE_DENOMINATOR;
+        uint256 leftNative = dNative - projectFee - platformFee;
 
-        require(address(this).balance >= dy, "Balance: balance is not enough");
-        _burn(from, dx);
+        require(address(this).balance >= dNative, "Balance: balance is not enough");
+        _burn(from, dErc20);
 
         {
             (bool success, ) = _factory.call{value: platformFee}("");
@@ -149,22 +149,23 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGu
             }
         }
 
-        emit Burned(from, dx, leftNative, platformFee, projectFee);
+        emit Burned(from, dErc20, leftNative, platformFee, projectFee);
     }
 
     function estimateBurn(uint256 erc20Tokens)
         public
         view
         returns (
-            uint256 dx,
-            uint256 dy,
+            uint256 dErc20,
+            uint256 dNative,
             uint256 gasBurn
         )
     {
-        (dx, dy) = _burning(erc20Tokens, totalSupply());
-        gasBurn = (dy * _treasuryBurnFee) / MAX_GAS_RATE_DENOMINATOR;
-        gasBurn = gasBurn + (dy * _platformBurnFee) / MAX_GAS_RATE_DENOMINATOR;
-        return (dx, dy, gasBurn);
+        (dErc20, dNative) = _burning(erc20Tokens, totalSupply());
+        gasBurn = (dNative * _treasuryBurnFee) / MAX_GAS_RATE_DENOMINATOR;
+        gasBurn = gasBurn + (dNative * _platformBurnFee) / MAX_GAS_RATE_DENOMINATOR;
+        dNative = dNative - gasBurn;
+        return (dErc20, dNative, gasBurn);
     }
 
     function price() public view returns (uint256) {

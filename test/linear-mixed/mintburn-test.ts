@@ -1,16 +1,35 @@
 import { expect } from "chai"
 import { ethers, network } from "hardhat"
 import { defines } from "../../hardhat.config";
-import { ExpMixedHotpotToken__factory } from "../../typechain";
+import { LinearMixedHotpotToken__factory } from "../../typechain";
 
 const hre = require("hardhat");
 const Ether = defines.Unit.Ether
+const Wei = defines.Unit.Ether
 const Id = defines.Id
 const round = 10
 
 describe("HotpotToken 大规模铸造销毁测试", async () => {
 
     describe('Linear Mixed Hotpot Token', async () => {
+        it("验证 mint 最小铸造", async () => {
+            let signers = await ethers.getSigners()
+            let buyer = signers[Id.Buyer]
+            let treasury = signers[Id.Treasury]
+            let platform = signers[Id.Platform]
+            
+            const token = await hre.linearToken(100,100)
+            const hotpotTokenAbi = await LinearMixedHotpotToken__factory.connect(token.address,buyer)
+            
+            await network.provider.send("hardhat_setBalance", [treasury.address, '0x0'])
+            await network.provider.send("hardhat_setBalance", [platform.address, '0x0'])
+            await network.provider.send("hardhat_setBalance", [buyer.address, Ether.mul(100000000)._hex.replace(/0x0+/, '0x')])
+
+            await expect(hotpotTokenAbi.connect(buyer).mint(buyer.address, await (await hotpotTokenAbi.estimateMint(Ether.mul(1000))).dErc20, { value: Ether.mul(1000) })
+                ,'大于最小铸造期望时 铸造成功').to.ok
+            await expect(hotpotTokenAbi.connect(buyer).mint(buyer.address, await (await hotpotTokenAbi.estimateMint(Ether.mul(1000))).dErc20.add(1), { value: Ether.mul(1000) })
+                ,'小于最小铸造期望时 铸造失败').to.reverted
+        })
 
         it("样例 mint 与 burn 方法 个人单买多轮", async () => {
             let signers = await ethers.getSigners()
@@ -18,8 +37,8 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
             let treasury = signers[Id.Treasury]
             let platform = signers[Id.Platform]
             
-            const token = await hre.expToken(100,100)
-            const hotpotTokenAbi = await ExpMixedHotpotToken__factory.connect(token.address,buyer)
+            const token = await hre.linearToken(100,100)
+            const hotpotTokenAbi = await LinearMixedHotpotToken__factory.connect(token.address,buyer)
             
             await network.provider.send("hardhat_setBalance", [treasury.address, '0x0'])
             await network.provider.send("hardhat_setBalance", [platform.address, '0x0'])
@@ -42,9 +61,10 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
                     '价格eth/erc20', ethers.utils.formatEther(price), '\n',
                     'BUYER eth 余额', ethers.utils.formatEther(buyerBalance),
                     'BUYER erc20 余额', ethers.utils.formatEther(erc20Balance),
-                    'BUYER eth 可兑取', ethers.utils.formatEther(estimateBurn.dy),
-                    '误差损失 eth wei', contractAsset.sub(estimateBurn.dy).toString(), '\n',
+                    'BUYER eth 可兑取', ethers.utils.formatEther(estimateBurn.dNative.add(estimateBurn.gasBurn)),
+                    '误差损失 eth wei', contractAsset.sub(estimateBurn.dNative.add(estimateBurn.gasBurn)).toString(), '\n',
                 )
+                expect(contractAsset.sub(estimateBurn.dNative.add(estimateBurn.gasBurn)),'误差损失当线性增长').to.lt(Wei.mul(1000*(round+2)))
             }
         })
 
@@ -54,8 +74,8 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
             let treasury = signers[Id.Treasury]
             let platform = signers[Id.Platform]
 
-            const token = await hre.expToken(100,100)
-            const hotpotTokenAbi = await ExpMixedHotpotToken__factory.connect(token.address,buyer)
+            const token = await hre.linearToken(100,100)
+            const hotpotTokenAbi = await LinearMixedHotpotToken__factory.connect(token.address,buyer)
             
             await network.provider.send("hardhat_setBalance", [treasury.address, '0x0'])
             await network.provider.send("hardhat_setBalance", [platform.address, '0x0'])
@@ -79,9 +99,10 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
                     '价格eth/erc20', ethers.utils.formatEther(price), '\n',
                     'BUYER eth 余额', ethers.utils.formatEther(buyerBalance),
                     'BUYER erc20 余额', ethers.utils.formatEther(erc20Balance),
-                    'BUYER eth 可兑取', ethers.utils.formatEther(estimateBurn.dy),
-                    '误差损失 eth wei', contractAsset.sub(estimateBurn.dy).toString(), '\n',
+                    'BUYER eth 可兑取', ethers.utils.formatEther(estimateBurn.dNative.add(estimateBurn.gasBurn)),
+                    '误差损失 eth wei', contractAsset.sub(estimateBurn.dNative.add(estimateBurn.gasBurn)).toString(), '\n',
                 )
+                expect(contractAsset.sub(estimateBurn.dNative.add(estimateBurn.gasBurn)),'误差损失当线性增长').to.lt(Wei.mul(1000*(round+2)))
                 let burnTx2 = await hotpotTokenAbi.connect(buyer).burn(buyer.address, totalErc20Balance.div(100))
                 await burnTx2.wait()
             }
@@ -95,8 +116,8 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
             let buyer2 = signers[Id.Buyer2]
             let buyer3 = signers[Id.Buyer3]
             
-            const token = await hre.expToken(100,100)
-            const hotpotTokenAbi = await ExpMixedHotpotToken__factory.connect(token.address,buyer1)
+            const token = await hre.linearToken(100,100)
+            const hotpotTokenAbi = await LinearMixedHotpotToken__factory.connect(token.address,buyer1)
             
 
             await network.provider.send("hardhat_setBalance", [treasury.address, '0x0'])
@@ -150,8 +171,8 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
                     '国库eth余额', ethers.utils.formatEther(treasuryBalance),
                     '合约erc20supply', ethers.utils.formatEther(contractTotalSupply),
                     '合约eth资产', ethers.utils.formatEther(contractAsset),
-                    'eth 可兑取', ethers.utils.formatEther(estimateBurn.dy),
-                    '误差损失 eth wei', contractAsset.sub(estimateBurn.dy).toString(),
+                    'eth 可兑取', ethers.utils.formatEther(estimateBurn.dNative.add(estimateBurn.gasBurn)),
+                    '误差损失 eth wei', contractAsset.sub(estimateBurn.dNative.add(estimateBurn.gasBurn)).toString(),
                     '价格eth/erc20', ethers.utils.formatEther(price), '\n',
                     'BUYER 1 eth 余额', ethers.utils.formatEther(buyer1Native),
                     'erc20 余额', ethers.utils.formatEther(buyer1Erc20), '\n',
@@ -160,6 +181,7 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
                     'BUYER 3 eth 余额', ethers.utils.formatEther(buyer3Native),
                     'erc20 余额', ethers.utils.formatEther(buyer3Erc20), '\n',
                 )
+                expect(contractAsset.sub(estimateBurn.dNative.add(estimateBurn.gasBurn)),'误差损失当线性增长').to.lt(Wei.mul(1000*(round+2)))
             }
         })
     })

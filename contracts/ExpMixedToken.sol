@@ -21,10 +21,9 @@ contract ExpMixedBondingSwap is IBondingCurve {
         a = 14;
         b = 2e6;
     }
-
+    // x => erc20, y => native
     // F(x) = (a) e**(x/b)
     // 2000.0 native => 9937641.487326497977995709 erc20
-    // (dx,dy) = Fx(totalSupply+dx) - Fx(totalSupply)
     function mining(uint256 nativeTokens, uint256 erc20Supply) public view override returns (uint256 dx, uint256 dy) {
         dy = nativeTokens;
         require(erc20Supply < uint256(1 << 192));
@@ -41,7 +40,6 @@ contract ExpMixedBondingSwap is IBondingCurve {
         return (dx, dy);
     }
 
-    // (dx,dy) = Fx(erc20Supply) - Fx(erc20Supply-dx)
     function burning(uint256 erc20Tokens, uint256 erc20Supply) public view override returns (uint256 dx, uint256 dy) {
         dx = erc20Tokens;
         require(erc20Supply < uint256(1 << 192));

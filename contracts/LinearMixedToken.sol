@@ -21,8 +21,8 @@ contract LinearMixedBondingSwap is IBondingCurve {
         p = _p;
     }
 
-    // F(x) = (1/2) (1/k) x**2 + p x
-
+    // x => erc20, y => native
+    // p(x) = x / k + p
     function mining(uint256 nativeTokens, uint256 erc20Supply) public view override returns (uint256 dx, uint256 dy) {
         dy = nativeTokens;
         uint256 erc20CurrentPrice = erc20Supply / k + p;
@@ -30,7 +30,6 @@ contract LinearMixedBondingSwap is IBondingCurve {
         return (dx, dy);
     }
 
-    // (dx,dy) = Fx(erc20Supply) - Fx(erc20Supply-dx)
     function burning(uint256 erc20Tokens, uint256 erc20Supply) public view override returns (uint256 dx, uint256 dy) {
         dx = erc20Tokens;
         uint256 erc20CurrentPrice = erc20Supply / k + p;
@@ -44,7 +43,6 @@ contract LinearMixedBondingSwap is IBondingCurve {
 }
 
 contract LinearMixedHotpotToken is ERC20HotpotMixed {
-    //
 
     function initialize(
         string memory name,
