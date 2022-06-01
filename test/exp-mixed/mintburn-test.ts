@@ -1,5 +1,6 @@
 import { expect } from "chai"
 import { ethers, network } from "hardhat"
+import { ExpMixedHotpotToken__factory } from "../../typechain";
 
 const hre = require("hardhat");
 const Wei = ethers.BigNumber.from('1')
@@ -16,7 +17,8 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
             await hre.network.provider.send("hardhat_reset")
             let signers = await ethers.getSigners()
             let buyer = signers[3]
-            const hotpotTokenAbi = await hre.expToken(100,100)
+            const token = await hre.expToken(100,100)
+            const hotpotTokenAbi = await ExpMixedHotpotToken__factory.connect(token.address,buyer)
             
             await network.provider.send("hardhat_setBalance", [hre.treasury.address, '0x0'])
             await network.provider.send("hardhat_setBalance", [hre.platform.address, '0x0'])
@@ -49,7 +51,8 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
             await hre.network.provider.send("hardhat_reset")
             let signers = await ethers.getSigners()
             let buyer = signers[3]
-            const hotpotTokenAbi = await hre.expToken(100,100)
+            const token = await hre.expToken(100,100)
+            const hotpotTokenAbi = await ExpMixedHotpotToken__factory.connect(token.address,buyer)
 
             await network.provider.send("hardhat_setBalance", [hre.treasury.address, '0x0'])
             await network.provider.send("hardhat_setBalance", [hre.platform.address, '0x0'])
@@ -87,7 +90,8 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
             let buyer1 = signers[3]
             let buyer2 = signers[4]
             let buyer3 = signers[5]
-            const hotpotTokenAbi = await hre.expToken(100,100)
+            const token = await hre.expToken(100,100)
+            const hotpotTokenAbi = await ExpMixedHotpotToken__factory.connect(token.address,buyer1)
 
             await network.provider.send("hardhat_setBalance", [hre.treasury.address, '0x0'])
             await network.provider.send("hardhat_setBalance", [hre.platform.address, '0x0'])

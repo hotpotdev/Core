@@ -27,15 +27,16 @@ extendEnvironment(async (hre: any) => {
   let platform = signers[2]
   hre.platform = platform;
   hre.treasury = treasury;
-  
+  const DefaultMintCap = hre.ethers.BigNumber.from('25000000000000000000000000')
   // const hotpotTokenAbi = ExpMixedHotpotToken__factory.connect(expAddr, signers[0])
-  hre.expToken = async (mintRate, burnRate) => await initFactory(hre, "Exp", mintRate, burnRate);
-  hre.linearToken = async (mintRate, burnRate) => await initFactory(hre, "Linear", mintRate, burnRate);
+  hre.expToken = async (mintRate, burnRate,premint=false, mintCap=DefaultMintCap) => 
+    await initFactory(hre, "Exp", mintRate, burnRate,premint,mintCap);
+  hre.linearToken = async (mintRate, burnRate,premint=false, mintCap=DefaultMintCap) => 
+    await initFactory(hre, "Linear", mintRate, burnRate,premint,mintCap);
 });
 
-async function initFactory(hre: any, type, mintRate, burnRate) {
+async function initFactory(hre: any, type, mintRate, burnRate, premint,mintCap) {
   const Web3 = require("web3");
-  const Ether = hre.ethers.BigNumber.from('1000000000000000000')
   // hre.network.provider is an EIP1193-compatible provider.
   hre.web3 = new Web3(hre.network.provider);
   let expTokenContract="ExpMixedHotpotToken"
@@ -57,8 +58,8 @@ async function initFactory(hre: any, type, mintRate, burnRate) {
 
   hre.mintRate = mintRate
   hre.burnRate = burnRate;
-  await hre.factory.connect(hre.platform).deployToken("Exp", "TET", "TET", hre.treasury.address, mintRate, burnRate, false, Ether.mul('25000000'), []);
-  await hre.factory.connect(hre.platform).deployToken("Linear", "TLT", "TLT", hre.treasury.address, mintRate, burnRate, false, Ether.mul('25000000'), data);
+  await hre.factory.connect(hre.platform).deployToken("Exp", "TET", "TET", hre.treasury.address, mintRate, burnRate, premint, mintCap, []);
+  await hre.factory.connect(hre.platform).deployToken("Linear", "TLT", "TLT", hre.treasury.address, mintRate, burnRate, premint, mintCap, data);
   const expAddr = await hre.factory.getToken(0);
   const linearAddr = await hre.factory.getToken(1);
   // console.log("exp address:", expAddr)

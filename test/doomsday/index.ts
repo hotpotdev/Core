@@ -1,5 +1,6 @@
 import { expect } from "chai"
 import { ethers, network } from "hardhat"
+import { ExpMixedHotpotToken__factory } from "../../typechain";
 const hre = require("hardhat");
 const Wei = ethers.BigNumber.from('1')
 const GWei = ethers.BigNumber.from('1000000000')
@@ -11,7 +12,8 @@ describe("验证 Doomsday 销毁功能", async () => {
             await hre.network.provider.send("hardhat_reset")
             let signers = await ethers.getSigners()
             let buyer = signers[0]
-            const hotpotTokenAbi = await hre.expToken(500,1000)
+            const token = await hre.expToken(500,1000)
+            const hotpotTokenAbi = await ExpMixedHotpotToken__factory.connect(token.address,buyer)
             await network.provider.send("hardhat_setBalance", [buyer.address, Ether.mul(100000000)._hex.replace(/0x0+/, '0x')])
             await network.provider.send("hardhat_setBalance", [hre.treasury.address, Ether._hex.replace(/0x0+/, '0x')])
             await network.provider.send("hardhat_setBalance", [hre.platform.address, Ether._hex.replace(/0x0+/, '0x')])
@@ -22,19 +24,19 @@ describe("验证 Doomsday 销毁功能", async () => {
 
             expect(await hotpotTokenAbi.doomsday(),'declareDoomsday 前 doomsday 应当为 false').to.false
 
-            expect(hotpotTokenAbi.connect(buyer).declareDoomsday(),'非 platform 用户不可 declareDoomsday').to.reverted
+            await expect(hotpotTokenAbi.connect(buyer).declareDoomsday(),'非 platform 用户不可 declareDoomsday').to.reverted
 
-            expect(hotpotTokenAbi.connect(hre.treasury).declareDoomsday(),'非 platform 用户不可 declareDoomsday').to.reverted
+            await expect(hotpotTokenAbi.connect(hre.treasury).declareDoomsday(),'非 platform 用户不可 declareDoomsday').to.reverted
 
-            expect(hotpotTokenAbi.connect(hre.treasury).destroyForDoomsday(),'treasury 用户在 declare 之前不可 destory').to.reverted
+            await expect(hotpotTokenAbi.connect(hre.treasury).destroyForDoomsday(),'treasury 用户在 declare 之前不可 destory').to.reverted
 
             let tx2 = await hre.factory.connect(hre.platform).declareDoomsday(hotpotTokenAbi.address);
             await tx2.wait();
 
             expect(await hotpotTokenAbi.paused(),'declareDoomsday 后 pause 应当为 true').to.true
             
-            expect(hotpotTokenAbi.connect(buyer).destroyForDoomsday(),'非 treasury 用户不可 destoryForDoomsday').to.reverted
-            expect(hotpotTokenAbi.connect(hre.platform).destroyForDoomsday(),'非 treasury 用户不可 destoryForDoomsday').to.reverted
+            await expect(hotpotTokenAbi.connect(buyer).destroyForDoomsday(),'非 treasury 用户不可 destoryForDoomsday').to.reverted
+            await expect(hotpotTokenAbi.connect(hre.platform).destroyForDoomsday(),'非 treasury 用户不可 destoryForDoomsday').to.reverted
             
             let asset = await hre.treasury.provider.getBalance(hotpotTokenAbi.address)
             let balanceOfTreasuryBefore = await hre.treasury.getBalance()

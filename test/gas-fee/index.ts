@@ -1,5 +1,6 @@
 import { expect } from "chai"
 import { ethers, network } from "hardhat"
+import { ExpMixedHotpotToken__factory } from "../../typechain"
 const hre=require("hardhat")
 const Wei = ethers.BigNumber.from('1')
 const GWei = ethers.BigNumber.from('1000000000')
@@ -12,7 +13,8 @@ describe("验证 Gas Fee 的收取", async () => {
             await hre.network.provider.send("hardhat_reset")
             let signers = await ethers.getSigners()
             let buyer = signers[0]
-            const hotpotTokenAbi = await hre.expToken(500,1000)
+            const token = await hre.expToken(500,1000)
+            const hotpotTokenAbi = await ExpMixedHotpotToken__factory.connect(token.address,buyer)
             // mint 1 eth
             await network.provider.send("hardhat_setBalance", [hre.treasury.address, '0x0'])
             let mintTx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: Ether })
@@ -35,7 +37,8 @@ describe("验证 Gas Fee 的收取", async () => {
         it("校验 mint 与 burn 方法 平台手续费", async () => {
             let signers = await ethers.getSigners()
             let buyer = signers[0]
-            const hotpotTokenAbi = await hre.expToken(100,100)
+            const token = await hre.expToken(100,100)
+            const hotpotTokenAbi = await ExpMixedHotpotToken__factory.connect(token.address,buyer)
             // mint 1 eth
             await network.provider.send("hardhat_setBalance", [hre.platform.address, '0x0'])
             let mintTx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: Ether })
