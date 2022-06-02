@@ -5,15 +5,17 @@
   "main": "index.js",
   "scripts": {
     "test": "hardhat test --grep '验证'",
-    "remix": "remixd -s ./ ./node_modules/@openzeppelin --remix-ide http://remix.app.hubwiz.com/"
+    "remix": "remixd -s ./ ./node_modules/@openzeppelin --remix-ide http://remix.app.hubwiz.com/",
+    "solc-abi": "solcjs --abi --include-path node_modules/ --base-path . contracts\\HotpotTokenFactory.sol -o ./abi/"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@nomiclabs/hardhat-ethers": "^2.0.0",
+    "@nomiclabs/hardhat-ethers": "^2.0.6",
     "@nomiclabs/hardhat-etherscan": "^3.0.0",
     "@nomiclabs/hardhat-waffle": "^2.0.0",
+    "@openzeppelin/hardhat-upgrades": "^1.17.0",
     "@typechain/ethers-v5": "^7.0.1",
     "@typechain/hardhat": "^2.3.0",
     "@types/chai": "^4.2.21",
@@ -31,7 +33,7 @@
     "eslint-plugin-prettier": "^3.4.0",
     "eslint-plugin-promise": "^5.1.0",
     "ethereum-waffle": "^3.0.0",
-    "ethers": "^5.4.7", 
+    "ethers": "^5.6.8",
     "hardhat": "^2.9.5",
     "hardhat-gas-reporter": "^1.0.4",
     "prettier": "^2.3.2",
@@ -40,12 +42,14 @@
     "solidity-coverage": "^0.7.16",
     "ts-node": "^10.1.0",
     "typechain": "^5.1.2",
-    "typescript": "^4.5.2"
+    "typescript": "^4.5.2",
+    "@remix-project/remixd": "^0.5.7",
+    "solc": "^0.8.13-fixed"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.6.0",
     "@openzeppelin/contracts-upgradeable": "^4.6.0",
-    "@remix-project/remixd": "^0.5.7",
-    "mocha": "^10.0.0"
+    "mocha": "^10.0.0",
+    "web3": "^1.7.3"
   }
 }

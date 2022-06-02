@@ -1,19 +1,19 @@
 import * as dotenv from "dotenv";
 
-import { HardhatUserConfig, task } from "hardhat/config";
+import { extendEnvironment, HardhatUserConfig, task } from "hardhat/config";
+import { ethers } from "ethers";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
+import '@openzeppelin/hardhat-upgrades';
 
 dotenv.config();
-
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
 task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   const accounts = await hre.ethers.getSigners();
-
   for (const account of accounts) {
     console.log(account.address);
   }
@@ -21,15 +21,76 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
+extendEnvironment(async (hre: any) => {
+  
+  let signers = await hre.ethers.getSigners()
+  hre.platform = signers[defines.Id.Platform]
+  hre.treasury = signers[defines.Id.Treasury]
+  
+  const DefaultMintCap = defines.Unit.Ether.mul(25000000)
+  hre.expToken = async (mintRate, burnRate,premint=false, mintCap=DefaultMintCap) => 
+    await initFactory(hre, "Exp", mintRate, burnRate,premint,mintCap);
+  hre.linearToken = async (mintRate, burnRate,premint=false, mintCap=DefaultMintCap) => 
+    await initFactory(hre, "Linear", mintRate, burnRate,premint,mintCap);
+});
+
+async function initFactory(hre: any, type, mintRate, burnRate, premint,mintCap) {
+  const Web3 = require("web3");
+  // hre.network.provider is an EIP1193-compatible provider.
+  hre.web3 = new Web3(hre.network.provider);
+  let expTokenContract="ExpMixedHotpotToken"
+  let linearTokenContract="LinearMixedHotpotToken"
+  const {  network,upgrades } = require("hardhat");
+
+  await network.provider.send("hardhat_setBalance", [hre.treasury.address, defines.Unit.Ether.mul(100)._hex.replace(/0x0+/, '0x')])
+  await network.provider.send("hardhat_setBalance", [hre.platform.address, defines.Unit.Ether.mul(100)._hex.replace(/0x0+/, '0x')])
+
+  let hotpotFactoryContract = "HotpotTokenFactory"
+  const HotpotFactory = await hre.ethers.getContractFactory(hotpotFactoryContract)
+  const factory = await upgrades.deployProxy(HotpotFactory,[hre.platform.address])
+  hre.factory = factory
+  const expToken = await hre.ethers.getContractFactory(expTokenContract);
+  const exp = await expToken.deploy();
+  const linearToken = await hre.ethers.getContractFactory(linearTokenContract);
+  const linear = await linearToken.deploy();
+  const data = hre.web3.eth.abi.encodeParameters(["uint256", "uint256"], [hre.ethers.BigNumber.from('10'), hre.ethers.BigNumber.from('0')]);
+
+  await hre.factory.connect(hre.platform).addImplement("Exp", exp.address);
+  await hre.factory.connect(hre.platform).addImplement("Linear", linear.address);
+
+  hre.mintRate = mintRate
+  hre.burnRate = burnRate;
+  await hre.factory.connect(hre.platform).deployToken("Exp", "TET", "TET", hre.treasury.address, mintRate, burnRate, premint, mintCap, []);
+  await hre.factory.connect(hre.platform).deployToken("Linear", "TLT", "TLT", hre.treasury.address, mintRate, burnRate, premint, mintCap, data);
+  const expAddr = await hre.factory.getToken(0);
+  const linearAddr = await hre.factory.getToken(1);
+  // console.log("exp address:", expAddr)
+  // console.log("linear address:", linearAddr)
+  switch (type) {
+    case "Exp":return await hre.ethers.getContractAt(expTokenContract,expAddr)
+    case "Linear":return await hre.ethers.getContractAt(linearTokenContract, linearAddr)
+  }
+}
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.13",
+  solidity: {
+    version: "0.8.13",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 2000,
+      },
+    },
+  },
   defaultNetwork: "hardhat",
   networks: {
     hardhat: {
       accounts: {
         accountsBalance: "200000000000000000000001"
       },
+    },
+    gpnode: {
+      url: process.env.GPNODE_URL || "",
     },
     ropsten: {
       url: process.env.ROPSTEN_URL || ""
@@ -53,3 +114,20 @@ const config: HardhatUserConfig = {
 };
 
 export default config;
+
+export const defines = {
+    Unit: {
+        Wei : ethers.BigNumber.from('1'),
+        GWei : ethers.BigNumber.from('1000000000'),
+        Ether : ethers.BigNumber.from('1000000000000000000')
+    },
+    Id: {
+        Treasury: 1,
+        Platform: 2,
+        Buyer: 3,
+        Buyer1: 4,
+        Buyer2: 5,
+        Buyer3: 6,
+        Default: 7,
+    }
+}

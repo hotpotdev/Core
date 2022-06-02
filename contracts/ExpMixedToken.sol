@@ -2,8 +2,6 @@
 pragma solidity 0.8.13;
 
 // openzeppelin
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 // abdk-consulting
@@ -16,86 +14,73 @@ import "./preset/ERC20HotpotMixed.sol";
 
 contract ExpMixedBondingSwap is IBondingCurve {
     using ABDKMath64x64 for int128;
-    uint public immutable a;
-    uint public immutable b;
+    uint256 public immutable a;
+    uint256 public immutable b;
 
     constructor() {
         a = 14;
         b = 2e6;
     }
+    // x => erc20, y => native
     // F(x) = (a) e**(x/b)
-    // 25000000000000000000000000 => 498273,592589687761195622
-    // 2000000000000000000000 => 10000000000000000000000000
-    // (dx,dy) = Fx(totalSupply+dx) - Fx(totalSupply)
-    function mining(uint256 nativeTokens, uint256 erc20Supply) public override view returns(uint256 dx, uint256 dy) {
+    // 2000.0 native => 9937641.487326497977995709 erc20
+    function mining(uint256 nativeTokens, uint256 erc20Supply) public view override returns (uint256 dx, uint256 dy) {
         dy = nativeTokens;
-        require(erc20Supply < uint(1 << 192));
-        require(nativeTokens < uint(1 << 192));
-        uint e_index = (erc20Supply << 64) / (b * 1e18);
-        uint e_mod = (nativeTokens << 64) / (a * 1e18);
-        int128 fabdk_e_index = 0;
-        int128 fabdk_e_mod = 0;
-        unchecked {
-            require(e_index <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
-            require(e_mod <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
-            fabdk_e_index = int128(uint128(e_index));
-            fabdk_e_mod = int128(uint128(e_mod));
-        }
+        require(erc20Supply < uint256(1 << 192));
+        require(nativeTokens < uint256(1 << 192));
+        uint256 e_index = (erc20Supply << 64) / (b * 1e18);
+        uint256 e_mod = (nativeTokens << 64) / (a * 1e18);
+        require(e_index <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
+        require(e_mod <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
+        int128 fabdk_e_index = int128(uint128(e_index));
+        int128 fabdk_e_mod = int128(uint128(e_mod));
         int128 fabdk_x = (fabdk_e_index.exp() + fabdk_e_mod).ln();
-        unchecked {
-            require(fabdk_x>=0);
-            dx = (((uint256(uint128(fabdk_x))) * b * 1e18) >> 64) - erc20Supply;
-            return (dx,dy);
-        }
+        require(fabdk_x >= 0);
+        dx = (((uint256(uint128(fabdk_x))) * b * 1e18) >> 64) - erc20Supply;
+        return (dx, dy);
     }
 
-    // (dx,dy) = Fx(erc20Supply) - Fx(erc20Supply-dx)
-    function burning(uint256 erc20Tokens, uint256 erc20Supply) public override view returns(uint256 dx, uint256 dy) {
+    function burning(uint256 erc20Tokens, uint256 erc20Supply) public view override returns (uint256 dx, uint256 dy) {
         dx = erc20Tokens;
-        require(erc20Supply < uint(1 << 192));
-        require(erc20Tokens < uint(1 << 192));
-        uint256 e_index_1 = (erc20Supply << 64) / (b * 1e18); 
+        require(erc20Supply < uint256(1 << 192));
+        require(erc20Tokens < uint256(1 << 192));
+        uint256 e_index_1 = (erc20Supply << 64) / (b * 1e18);
         uint256 e_index_0 = ((erc20Supply - erc20Tokens) << 64) / (b * 1e18);
-        int128 fabdk_e_index_1 = 0;
-        int128 fabdk_e_index_0 = 0;
-        unchecked {
-            require(e_index_1 <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
-            require(e_index_0 <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
-            fabdk_e_index_1 = int128(uint128(e_index_1));
-            fabdk_e_index_0 = int128(uint128(e_index_0));
-        }
+        require(e_index_1 <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
+        require(e_index_0 <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
+        int128 fabdk_e_index_1 = int128(uint128(e_index_1));
+        int128 fabdk_e_index_0 = int128(uint128(e_index_0));
         int128 fabdk_y = fabdk_e_index_1.exp() - fabdk_e_index_0.exp();
-        unchecked {
-            require(fabdk_y>=0);
-            dy = ((uint256(uint128(fabdk_y))) * a * 1e18) >> 64;
-            return (dx,dy);
-        }
+        require(fabdk_y >= 0);
+        dy = ((uint256(uint128(fabdk_y))) * a * 1e18) >> 64;
+        return (dx, dy);
     }
 
-    function price(uint256 erc20Supply) public override view returns(uint256) {
-        (uint x,uint y) = burning(1e18,erc20Supply+1e18);
-        return y * 1e18 / x;
+    function price(uint256 erc20Supply) public view override returns (uint256) {
+        uint256 e_index = (erc20Supply << 64) / (b * 1e18);
+        require(e_index <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
+        int128 fabdk_e_index = int128(uint128(e_index));
+        int128 fabdk_y = fabdk_e_index.exp();
+        require(fabdk_y >= 0);
+        uint256 p = ((uint256(uint128(fabdk_y))) * a * 1e18 / b) >> 64;
+        return p;
     }
 }
 
 contract ExpMixedHotpotToken is ERC20HotpotMixed {
-    // 
-    constructor(string memory name, string memory symbol, address treasury,uint mintRate,uint burnRate,address platform,bool premint,uint mintCap) ERC20(name, symbol){
-
-        _initTreasury(treasury);
-        _initPlatform(platform);
-
-        _setTaxRate(mintRate, burnRate);
-
+    function initialize(
+        string memory name,
+        string memory symbol,
+        address treasury,
+        uint256 mintRate,
+        uint256 burnRate,
+        bool hasPreMint,
+        uint256 mintCap,
+        bytes calldata
+    ) public initializer {
+        require(mintCap <= 25000000e18, "Initialize: mint Cap too large");
+        super.initialize(name, symbol, treasury, mintRate, burnRate, msg.sender, hasPreMint, mintCap);
         ExpMixedBondingSwap curve = new ExpMixedBondingSwap();
         _changeCoinMaker(address(curve));
-
-        _setupRole(PLATFORM_ROLE, _platform);
-        _setupRole(PROJECT_ROLE, _treasury);
-        _setupRole(PREMINT_ROLE, _treasury);
-        _setRoleAdmin(PREMINT_ROLE, PROJECT_ROLE);
-
-        _initPremint(premint);
-        _setMintCap(mintCap);
     }
 }
