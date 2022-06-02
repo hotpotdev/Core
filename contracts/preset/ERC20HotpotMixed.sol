@@ -50,8 +50,8 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGu
     function _setTaxRate(uint256 mintRate, uint256 burnRate) internal {
         _treasuryMintFee = mintRate;
         _treasuryBurnFee = burnRate;
-        require(_treasuryMintFee < MAX_GAS_RATE_DENOMINATOR, "SetTax: Invalid number");
-        require(_treasuryMintFee + _treasuryMintFee < MAX_GAS_RATE_DENOMINATOR, "SetTax: Invalid number");
+        require(_treasuryMintFee+_platformMintFee < MAX_GAS_RATE_DENOMINATOR, "SetTax: Invalid number");
+        require(_treasuryBurnFee+_platformBurnFee < MAX_GAS_RATE_DENOMINATOR, "SetTax: Invalid number");
     }
 
     function getTaxRate()
