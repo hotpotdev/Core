@@ -5,10 +5,9 @@ pragma solidity 0.8.13;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
-
-// diy addis
 import "./SwapCurve.sol";
 import "./HotpotMetadata.sol";
+import "../interfaces/IHotpotFactory.sol";
 
 abstract contract HotpotERC20Base is
     ERC20PausableUpgradeable,
@@ -17,20 +16,20 @@ abstract contract HotpotERC20Base is
     AccessControlUpgradeable
 {
     bytes32 public constant FACTORY_ROLE = keccak256("FACTORY_ROLE");
-    
     bytes32 public constant PROJECT_ADMIN_ROLE = keccak256("PROJECT_ADMIN_ROLE");
-    bytes32 public constant PROJECT_MANAGER_ROLE = keccak256("PROJECT_MANAGER_ROLE");
     bytes32 public constant PREMINT_ROLE = keccak256("PREMINT_ROLE");
 
-    address internal _treasury = 0x0000000000000000000000000000000000000000;
-    address internal _factory = 0x0000000000000000000000000000000000000000;
+    address internal _projectTreasury;
+    address internal _projectAdmin;
+    IHotpotFactory internal _factory;
 
-    uint256 private _mintCap = 1e36;
+    uint256 private _maxDaoTokenSupply = 1e36;
     bool private _premint = false;
     bool private _doomsday = false;
 
+    // 设置daoToken的铸造上限
     function cap() public view returns (uint256) {
-        return _mintCap;
+        return _maxDaoTokenSupply;
     }
 
     function premint() public view returns (bool) {
@@ -41,19 +40,23 @@ abstract contract HotpotERC20Base is
         return _doomsday;
     }
 
-    function factory() public view returns (address) {
-        return _factory;
+    function getFactory() public view returns (address) {
+        return address(_factory);
+    }
+    
+    function getProjectAdmin() public view returns (address) {
+        return _projectAdmin;
     }
 
-    function treasury() public view returns (address) {
-        return _treasury;
+    function getProjectTreasury() public view returns (address) {
+        return _projectTreasury;
     }
 
-    function setMetadata(string memory url) public onlyRole(PROJECT_MANAGER_ROLE) {
+    function setMetadata(string memory url) public onlyRole(PROJECT_ADMIN_ROLE) {
         _setMetadata(url);
     }
 
-    function normalizeMint() public onlyRole(PROJECT_MANAGER_ROLE) {
+    function normalizeMint() public onlyRole(PROJECT_ADMIN_ROLE) {
         _normalizeMint();
     }
     
@@ -72,12 +75,18 @@ abstract contract HotpotERC20Base is
         _declareDoomsday();
     }
     
-    function setTreasury(address newAdmin) public onlyRole(PROJECT_ADMIN_ROLE) {
-        require(newAdmin != address(0), "Invalid Address");
-        _grantRole(PROJECT_ADMIN_ROLE, newAdmin);
-        _revokeRole(PROJECT_ADMIN_ROLE, _treasury);
-        _treasury = newAdmin;
-        emit TreasuryAdminChanged(newAdmin);
+    function setProjectAdmin(address newProjectAdmin) public onlyRole(PROJECT_ADMIN_ROLE) {
+        require(newProjectAdmin != address(0), "Invalid Address");
+        _grantRole(PROJECT_ADMIN_ROLE, newProjectAdmin);
+        _revokeRole(PROJECT_ADMIN_ROLE, _projectAdmin);
+        _projectAdmin = newProjectAdmin;
+        emit LogProjectAdminChanged(newProjectAdmin);
+    }
+
+    function setProjectTreasury(address newProjectTreasury) public onlyRole(PROJECT_ADMIN_ROLE) {
+        require(newProjectTreasury != address(0), "Invalid Address");
+        _projectTreasury = newProjectTreasury;
+        emit LogProjectTreasuryChanged(newProjectTreasury);
     }
 
     function destroyForDoomsday() public onlyRole(PROJECT_ADMIN_ROLE) {
@@ -89,31 +98,33 @@ abstract contract HotpotERC20Base is
             upperlimit >= totalSupply(),
             "Warning: Mint Cap must great or equl than current supply"
         );
-        _mintCap = upperlimit;
+        _maxDaoTokenSupply = upperlimit;
     }
 
     function _initPremint(bool pre) internal {
         _premint = pre;
     }
 
-    function _initTreasury(address account) internal {
-        require(account != address(0), "Invalid Treasury Address");
-        _treasury = account;
+    function _initProject(address projectAdmin,address projectTreasury) internal {
+        require(projectAdmin != address(0), "Invalid Admin Address");
+        require(projectTreasury != address(0), "Invalid Treasury Address");
+        _projectAdmin = projectAdmin;
+        _projectTreasury = projectTreasury;
     }
 
     function _initFactory(address account) internal {
         require(account != address(0), "Invalid Treasury Address");
-        _factory = account;
+        _factory = IHotpotFactory(account);
     }
 
     function _normalizeMint() internal {
         _premint = false;
-        emit StopPremint(_msgSender());
+        emit LogStopPremint(_msgSender());
     }
 
     function _declareDoomsday() internal {
         _doomsday = true;
-        emit DeclareDoomsday(_msgSender());
+        emit LogDeclareDoomsday(_msgSender());
     }
 
     function _destroy() internal {
@@ -121,12 +132,13 @@ abstract contract HotpotERC20Base is
             _doomsday,
             "Warning: You are not allowed to destroy under normal circumstances"
         );
-        emit Destroyed(_msgSender());
-        selfdestruct(payable(_treasury));
+        emit LogDestroyed(_msgSender());
+        selfdestruct(payable(_projectTreasury));
     }
 
-    event StopPremint(address account);
-    event DeclareDoomsday(address account);
-    event Destroyed(address account);
-    event TreasuryAdminChanged(address newAccount);
+    event LogStopPremint(address account);
+    event LogDeclareDoomsday(address account);
+    event LogDestroyed(address account);
+    event LogProjectAdminChanged(address newAccount);
+    event LogProjectTreasuryChanged(address newAccount);
 }

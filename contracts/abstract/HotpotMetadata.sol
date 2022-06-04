@@ -9,12 +9,12 @@ contract HotpotMetadata{
 
     function _setMetadata(string memory uri) internal {
         _meta = uri;
-        emit MetadataChanged();
+        emit LogMetadataChanged();
     }
 
     function getMetadata() public view virtual returns (string memory){
         return _meta;
     }
 
-    event MetadataChanged();
+    event LogMetadataChanged();
 }

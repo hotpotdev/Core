@@ -26,7 +26,7 @@ async function main() {
     await network.provider.send("hardhat_setBalance", [platform.address, Ether.mul(1000000)._hex.replace(/0x0+/, '0x')])
     await network.provider.send("hardhat_setBalance", [buyer.address, Ether.mul(1000000)._hex.replace(/0x0+/, '0x')])
     // Deploy
-    const tokenProxy = await hre.expToken(100, 100);
+    const tokenProxy = await hre.expToken();
     factoryAddress = factoryAddress || hre.factory.address
     console.log(`Hotpot Token Factory deployed to: ${factoryAddress}`)
     console.log(`Exp Hotpot Token deployed to: ${tokenProxy.address}`)

@@ -28,7 +28,7 @@ extendEnvironment(async (hre: any) => {
   hre.treasury = signers[defines.Id.Treasury]
   
   const DefaultMintCap = defines.Unit.Ether.mul(25000000)
-  hre.expToken = async (mintRate, burnRate,premint=false, mintCap=DefaultMintCap) => 
+  hre.expToken = async (mintRate=100, burnRate=100,premint=false, mintCap=DefaultMintCap) => 
     await initFactory(hre, "Exp", mintRate, burnRate,premint,mintCap);
   hre.linearToken = async (mintRate, burnRate,premint=false, mintCap=DefaultMintCap) => 
     await initFactory(hre, "Linear", mintRate, burnRate,premint,mintCap);
@@ -47,25 +47,27 @@ async function initFactory(hre: any, type, mintRate, burnRate, premint,mintCap) 
 
   let hotpotFactoryContract = "HotpotTokenFactory"
   const HotpotFactory = await hre.ethers.getContractFactory(hotpotFactoryContract)
-  const factory = await upgrades.deployProxy(HotpotFactory,[hre.platform.address])
+  const factory = await upgrades.deployProxy(HotpotFactory,[hre.platform.address,hre.platform.address])
   hre.factory = factory
   const expToken = await hre.ethers.getContractFactory(expTokenContract);
   const exp = await expToken.deploy();
   const linearToken = await hre.ethers.getContractFactory(linearTokenContract);
   const linear = await linearToken.deploy();
-  const data = hre.web3.eth.abi.encodeParameters(["uint256", "uint256"], [hre.ethers.BigNumber.from('10'), hre.ethers.BigNumber.from('0')]);
 
   await hre.factory.connect(hre.platform).addImplement("Exp", exp.address);
   await hre.factory.connect(hre.platform).addImplement("Linear", linear.address);
 
   hre.mintRate = mintRate
   hre.burnRate = burnRate;
-  await hre.factory.connect(hre.platform).deployToken("Exp", "TET", "TET", hre.treasury.address, mintRate, burnRate, premint, mintCap, []);
-  await hre.factory.connect(hre.platform).deployToken("Linear", "TLT", "TLT", hre.treasury.address, mintRate, burnRate, premint, mintCap, data);
-  const expAddr = await hre.factory.getToken(0);
-  const linearAddr = await hre.factory.getToken(1);
-  // console.log("exp address:", expAddr)
-  // console.log("linear address:", linearAddr)
+  const data1 = hre.web3.eth.abi.encodeParameters(["bool","uint256","uint256", "uint256"], [premint,mintCap,hre.ethers.BigNumber.from('100'), hre.ethers.BigNumber.from('0')]);
+  const data2 = hre.web3.eth.abi.encodeParameters(["bool","uint256"], [premint,mintCap]);
+  await hre.factory.connect(hre.platform).deployToken("Linear", "TLT", "TLT", hre.treasury.address, hre.treasury.address, mintRate, burnRate, data1);
+  await hre.factory.connect(hre.platform).deployToken("Exp", "TET", "TET", hre.treasury.address, hre.treasury.address, mintRate, burnRate, data2);
+  const linearAddr = await hre.factory.getToken(0);
+  const expAddr = await hre.factory.getToken(1);
+  
+//   console.log("exp address:", expAddr)
+//   console.log("linear address:", linearAddr)
   switch (type) {
     case "Exp":return await hre.ethers.getContractAt(expTokenContract,expAddr)
     case "Linear":return await hre.ethers.getContractAt(linearTokenContract, linearAddr)
@@ -94,6 +96,11 @@ const config: HardhatUserConfig = {
     },
     ropsten: {
       url: process.env.ROPSTEN_URL || ""
+    },
+    rinkby: {
+      url: process.env.RINKBY_URL || "",
+      accounts:
+      process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     goerli: {
       url: process.env.GOERLI_URL || "",
