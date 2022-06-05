@@ -4,7 +4,7 @@ import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.so
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./interfaces/IHotpotFactory.sol";
-import "./interfaces/IHotpot.sol";
+import "./interfaces/IHotpotToken.sol";
 import "./ExpMixedToken.sol";
 import "./LinearMixedToken.sol";
 
@@ -12,18 +12,16 @@ interface IHotpotERC20 is IHotpotToken {
     function initialize(
         string memory name,
         string memory symbol,
-        address treasury,
-        uint256 mintRate,
-        uint256 burnRate,
-        bool hasPreMint,
-        uint256 mintCap,
+        address projectAdmin,
+        address projectTreasury,
+        uint256 projectMintTax,
+        uint256 projectBurnTax,
         bytes memory data
     ) external;
 }
 
 contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
     bytes32 public constant PLATFORM_ADMIN_ROLE = keccak256("PLATFORM_ADMIN");
-    bytes32 public constant PLATFORM_MANAGER_ROLE = keccak256("PLATFORM_MANAGER");
 
     mapping(string => address) private _implementsMap;
     mapping(uint256 => address) private tokens;
@@ -31,22 +29,28 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
  
     uint256 private tokensLength;
 
-    address private _platform;   
+    address private _platformAdmin;
+    address private _platformTreasury;   
     ProxyAdmin private _proxyAdmin;
+
+    uint256 private constant MAX_TAX_RATE_DENOMINATOR = 10000;
+    uint256 private _platformMintTax;
+    uint256 private _platformBurnTax;
 
     receive() external payable {
         // console.log(msg.value);
-        (bool success, ) = _platform.call{value: msg.value}("");
-        require(success, "Transfer: charge platform gas failed");
+        (bool success, ) = _platformTreasury.call{value: msg.value}("");
+        require(success, "platform transfer failed");
     }
 
     fallback() external payable {}
 
-    function initialize(address platform) public initializer {
-        _setRoleAdmin(PLATFORM_MANAGER_ROLE, PLATFORM_ADMIN_ROLE);
-        _grantRole(PLATFORM_ADMIN_ROLE, platform);
-        _grantRole(PLATFORM_MANAGER_ROLE, platform);
-        _platform = platform;
+    function initialize(address platformAdmin, address platformTreasury) public initializer {
+        _grantRole(PLATFORM_ADMIN_ROLE, platformAdmin);
+        _platformAdmin = platformAdmin;
+        _platformTreasury = platformTreasury;
+        _platformMintTax = 100;
+        _platformBurnTax = 100;
         _proxyAdmin = new ProxyAdmin();
     }
 
@@ -54,22 +58,20 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
         string memory tokenType,
         string memory name,
         string memory symbol,
-        address treasury,
-        uint256 mintRate,
-        uint256 burnRate,
-        bool hasPreMint,
-        uint256 mintCap,
+        address projectAdmin,
+        address projectTreasury,
+        uint256 projectMintTax,
+        uint256 projectBurnTax,
         bytes calldata data
     ) public returns (address) {
         bytes memory call = abi.encodeWithSelector(
             IHotpotERC20.initialize.selector,
             name,
             symbol,
-            treasury,
-            mintRate,
-            burnRate,
-            hasPreMint,
-            mintCap,
+            projectAdmin,
+            projectTreasury,
+            projectMintTax,
+            projectBurnTax,
             data
         );
         require(_implementsMap[tokenType] != address(0), "Deploy Failed: token type has no implement");
@@ -78,21 +80,36 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
             address(_proxyAdmin),
             call
         );
+        uint256 tokenId = tokensLength;
         tokens[tokensLength] = address(proxy);
         tokensLength++;
         tokensType[address(proxy)] = tokenType;
 
-        emit TokenDeployed(tokenType, address(proxy), burnRate, mintRate, treasury, data, mintCap);
+        emit LogTokenDeployed(tokenType, tokenId, address(proxy));
         return address(proxy);
     }
 
-    function addImplement(string memory tokenType, address impl) public onlyRole(PLATFORM_MANAGER_ROLE) {
+    function setPlatformTaxRate(uint256 platformMintTax, uint256 platformBurnTax) public onlyRole(PLATFORM_ADMIN_ROLE){
+        require(platformMintTax<MAX_TAX_RATE_DENOMINATOR,"SetTax: Invalid number");
+        require(platformBurnTax<MAX_TAX_RATE_DENOMINATOR,"SetTax: Invalid number");
+        _platformMintTax = platformMintTax;
+        _platformBurnTax = platformBurnTax;
+        emit LogPlatformTaxChanged();
+    }
+
+    function getTaxRateOfPlatform() public view returns (uint256 platformMintTax, uint256 platformBurnTax){
+        return (_platformMintTax,_platformBurnTax);
+    }
+
+    function addImplement(string memory tokenType, address impl) public onlyRole(PLATFORM_ADMIN_ROLE) {
+        require(impl != address(0), "invalid implement");
         _implementsMap[tokenType] = impl;
-        emit TokenTypeImplAdded(tokenType, impl);
+        emit LogTokenTypeImplAdded(tokenType, impl);
     }
 
     function getImplement(string memory tokenType) public view returns (address impl) {
         impl = _implementsMap[tokenType];
+        require(impl != address(0),"no such implement");
     }
 
     function getTokensLength() public view returns (uint256 len) {
@@ -101,39 +118,51 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
 
     function getToken(uint256 index) public view returns (address addr) {
         addr = tokens[index];
+        require(addr != address(0),"no such token");
     }
 
-    function getPlatform() public view returns (address) {
-        return _platform;
+    function getPlatformAdmin() public view returns (address) {
+        return _platformAdmin;
     }
 
-    function setPlatform(address newAdmin) public onlyRole(PLATFORM_ADMIN_ROLE) {
-        require(newAdmin != address(0), "Invalid Address");
-        _grantRole(PLATFORM_ADMIN_ROLE, newAdmin);
-        _revokeRole(PLATFORM_ADMIN_ROLE, _platform);
-        _platform = newAdmin;
-        emit PlatformAdminChanged(newAdmin);
+    function getPlatformTreasury() public view returns (address) {
+        return _platformTreasury;
     }
 
-    function declareDoomsday(address proxyAddress) external override onlyRole(PLATFORM_MANAGER_ROLE) {
+    function setPlatformAdmin(address newPlatformAdmin) public onlyRole(PLATFORM_ADMIN_ROLE) {
+        require(newPlatformAdmin != address(0), "Invalid Address");
+        _grantRole(PLATFORM_ADMIN_ROLE, newPlatformAdmin);
+        _revokeRole(PLATFORM_ADMIN_ROLE, _platformAdmin);
+        _platformAdmin = newPlatformAdmin;
+        emit LogPlatformAdminChanged(newPlatformAdmin);
+    }
+    
+    function setPlatformTreasury(address newPlatformTreasury) public onlyRole(PLATFORM_ADMIN_ROLE) {
+        require(newPlatformTreasury != address(0), "Invalid Address");
+        _platformTreasury = newPlatformTreasury;
+        emit LogPlatformTreasuryChanged(newPlatformTreasury);
+    }
+
+
+    function declareDoomsday(address proxyAddress) external override onlyRole(PLATFORM_ADMIN_ROLE) {
         IHotpotERC20(proxyAddress).declareDoomsday();
     }
 
-    function pause(address proxyAddress) external override onlyRole(PLATFORM_MANAGER_ROLE) {
+    function pause(address proxyAddress) external override onlyRole(PLATFORM_ADMIN_ROLE) {
         IHotpotERC20(proxyAddress).pause();
     }
 
-    function unpause(address proxyAddress) external override onlyRole(PLATFORM_MANAGER_ROLE) {
+    function unpause(address proxyAddress) external override onlyRole(PLATFORM_ADMIN_ROLE) {
         IHotpotERC20(proxyAddress).unpause();
     }
 
-    function upgradeTokenImplement(address proxyAddress, bytes calldata data) external payable override {
-        require(msg.sender == _platform, "Upgrade Failed: Permission Not Allowed");
+    function upgradeTokenImplement(address proxyAddress, bytes calldata data) external payable override onlyRole(PLATFORM_ADMIN_ROLE){
+        require(_implementsMap[tokensType[proxyAddress]] != address(0), "Upgrade Failed: Invalid Implement");
         _proxyAdmin.upgradeAndCall{value: msg.value}(
             TransparentUpgradeableProxy(payable(proxyAddress)),
             _implementsMap[tokensType[proxyAddress]],
             data
         );
-        emit TokenImplementUpgraded(proxyAddress, tokensType[proxyAddress], _implementsMap[tokensType[proxyAddress]], data);
+        emit LogTokenImplementUpgraded(proxyAddress, tokensType[proxyAddress], _implementsMap[tokensType[proxyAddress]]);
     }
 }

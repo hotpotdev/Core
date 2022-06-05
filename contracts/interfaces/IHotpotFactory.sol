@@ -6,11 +6,10 @@ interface IHotpotFactory {
         string memory tokenType,
         string memory name,
         string memory symbol,
-        address treasury,
-        uint256 mintRate,
-        uint256 burnRate,
-        bool hasPremint,
-        uint256 mintCap,
+        address projectAdmin,
+        address projectTreasury,
+        uint256 projectMintTax,
+        uint256 projectBurnTax,
         bytes memory data
     ) external returns (address depoyed);
 
@@ -18,11 +17,17 @@ interface IHotpotFactory {
 
     function getImplement(string memory tokenType) external view returns (address impl);
 
+    function setPlatformTaxRate(uint256 platformMintTax, uint256 platformBurnTax) external;
+
+    function getTaxRateOfPlatform() external view returns (uint256 platformMintTax, uint256 platformBurnTax);
+
     function getTokensLength() external view returns (uint256 len);
 
     function getToken(uint256 index) external view returns (address addr);
 
-    function getPlatform() external view returns (address);
+    function getPlatformAdmin() external view returns (address);
+    
+    function getPlatformTreasury() external view returns (address);
 
     function declareDoomsday(address proxyAddress) external;
 
@@ -32,19 +37,16 @@ interface IHotpotFactory {
 
     function upgradeTokenImplement(address proxyAddress, bytes calldata data) external payable;
 
-    event TokenDeployed(
-        string tokenType,
-        address deployedAddr,
-        uint256 burnRate,
-        uint256 mintRate,
-        address treasury,
-        bytes extraData,
-        uint256 mintCap
-    );
+    event LogTokenDeployed(string tokenType,uint tokenId,address deployedAddr);
 
-    event TokenImplementUpgraded(address proxyAddress, string tokenType, address implementAddr, bytes data);
+    event LogTokenImplementUpgraded(address proxyAddress, string tokenType, address implementAddr);
 
-    event TokenTypeImplAdded(string tokenType, address impl);
+    event LogTokenTypeImplAdded(string tokenType, address impl);
     
-    event PlatformAdminChanged(address newAccount);
+    event LogPlatformAdminChanged(address newAccount);
+
+    event LogPlatformTreasuryChanged(address newAccount);
+
+    event LogPlatformTaxChanged();
+
 }

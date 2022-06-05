@@ -11,19 +11,19 @@ abstract contract SwapCurve {
 
     IBondingCurve _coinMaker;
 
-    event CoinMakerChanged(address _from, address _to);
+    event LogCoinMakerChanged(address _from, address _to);
     
     function _changeCoinMaker(address newBonding) internal {
         _coinMaker = IBondingCurve(newBonding);
-        emit CoinMakerChanged(address(_coinMaker), newBonding);
+        emit LogCoinMakerChanged(address(_coinMaker), newBonding);
     }
     
-    function _mining(uint256 tokens, uint256 totalSupply) internal view returns(uint256 dx, uint256 dy) {
-        return _coinMaker.mining(tokens, totalSupply);
+    function _calculateMintAmountFromBondingCurve(uint256 tokens, uint256 totalSupply) internal view returns(uint256, uint256) {
+        return _coinMaker.calculateMintAmountFromBondingCurve(tokens, totalSupply);
     }
     
-    function _burning(uint256 tokens, uint256 totalSupply) internal view returns(uint256 dx, uint256 dy) {
-        return _coinMaker.burning(tokens, totalSupply);
+    function _calculateBurnAmountFromBondingCurve(uint256 tokens, uint256 totalSupply) internal view returns(uint256, uint256) {
+        return _coinMaker.calculateBurnAmountFromBondingCurve(tokens, totalSupply);
     }
     
     function _price(uint256 totalSupply) internal view returns (uint) {

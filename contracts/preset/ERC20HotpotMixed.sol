@@ -11,165 +11,180 @@ import "../interfaces/IHotpotSwap.sol";
 
 
 abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGuard {
-    uint256 internal constant MAX_GAS_RATE_DENOMINATOR = 10000;
-    uint256 internal constant _platformMintFee = 100;
-    uint256 internal constant _platformBurnFee = 100;
+    uint256 internal constant MAX_TAX_RATE_DENOMINATOR = 10000;
 
-    uint256 internal _treasuryMintFee = 100;
-    uint256 internal _treasuryBurnFee = 100;
+    uint256 internal _projectMintTax = 100;
+    uint256 internal _projectBurnTax = 100;
 
     function initialize(
         string memory name,
         string memory symbol,
-        address treasury,
-        uint256 mintRate,
-        uint256 burnRate,
-        address factory,
-        bool hasPreMint,
-        uint256 mintCap
+        address projectAdmin,
+        address projectTreasury,
+        uint256 projectMintTax,
+        uint256 projectBurnTax,
+        address factory
     ) public initializer {
         __ERC20_init(name, symbol);
-        _initTreasury(treasury);
+        _initProject(projectAdmin,projectTreasury);
         _initFactory(factory);
 
-        _setTaxRate(mintRate, burnRate);
-
+        _setProjectTaxRate(projectMintTax, projectBurnTax);
+        
         _setupRole(FACTORY_ROLE, factory);
 
-        _setupRole(PROJECT_ADMIN_ROLE, treasury);
-        _setupRole(PROJECT_MANAGER_ROLE, treasury);
-        _setupRole(PREMINT_ROLE, treasury);
+        _setupRole(PROJECT_ADMIN_ROLE, _projectAdmin);
+        _setupRole(PREMINT_ROLE, _projectAdmin);
 
         _setRoleAdmin(PREMINT_ROLE, PROJECT_ADMIN_ROLE);
-        _setRoleAdmin(PROJECT_MANAGER_ROLE, PROJECT_ADMIN_ROLE);
-        
-        _initPremint(hasPreMint);
-        _setMintCap(mintCap);
     }
 
-    function _setTaxRate(uint256 mintRate, uint256 burnRate) internal {
-        _treasuryMintFee = mintRate;
-        _treasuryBurnFee = burnRate;
-        require(_treasuryMintFee+_platformMintFee < MAX_GAS_RATE_DENOMINATOR, "SetTax: Invalid number");
-        require(_treasuryBurnFee+_platformBurnFee < MAX_GAS_RATE_DENOMINATOR, "SetTax: Invalid number");
+    function setProjectTaxRate(uint256 projectMintTax, uint256 projectBurnTax) public onlyRole(PROJECT_ADMIN_ROLE) {
+        _setProjectTaxRate(projectMintTax, projectBurnTax);
     }
 
-    function getTaxRate()
+    function getTaxRateOfProject()
         public
         view
         returns (
-            uint256 _projectMintRate,
-            uint256 projectBurnRate,
-            uint256 platformMintRate,
-            uint256 platformBurnRate
+            uint256 projectMintTax,
+            uint256 projectBurnTax
         )
     {
-        return (_treasuryMintFee, _treasuryBurnFee, _projectMintRate, projectBurnRate);
+        return (_projectMintTax, _projectBurnTax);
     }
 
-    function mint(address to, uint256 minimalErc20Token) public payable whenNotPaused nonReentrant {
+    function getTaxRateOfPlatform()
+        public
+        view
+        returns (
+            uint256 platformMintTax,
+            uint256 platformBurnTax
+        )
+    {
+        return _factory.getTaxRateOfPlatform();
+    }
+
+    //  daoToken 会通过bonding curve铸造销毁所以totalSupply会动态变化
+    function _getCurrentSupply() internal view returns (uint256){
+        return totalSupply();
+    }
+
+    function mint(address to, uint256 minDaoTokenRecievedAmount) public payable whenNotPaused nonReentrant {
+        // minDaoTokenRecievedAmount是为了用户购买的时候，处理滑点，防止在极端情况获得远少于期望的代币
         if (premint()) {
             _checkRole(PREMINT_ROLE, _msgSender());
         }
-        uint256 dErc20;
-        uint256 dNative = msg.value;
-        // TODO abi Compatibility issues
-        require(1e9 <= dNative, "Mint: value is too low");
-        uint256 projectFee = (dNative * _treasuryMintFee) / MAX_GAS_RATE_DENOMINATOR;
-        uint256 platformFee = (dNative * _platformMintFee) / MAX_GAS_RATE_DENOMINATOR;
-        uint256 leftNative = dNative - projectFee - platformFee;
+        uint256 daoTokenAmount;
+        uint256 nativeTokenPaidAmount = msg.value;
+        
+        
+        (uint _platformMintTax,) = _factory.getTaxRateOfPlatform();
+        uint256 projectFee = (nativeTokenPaidAmount * _projectMintTax) / MAX_TAX_RATE_DENOMINATOR;
+        uint256 platformFee = (nativeTokenPaidAmount * _platformMintTax) / MAX_TAX_RATE_DENOMINATOR;
+        // 计算实际打入bonding curve合约的native token(e.g., eth/bnb)的数量
+        uint256 nativeTokenPaidToBondingCurveAmount = nativeTokenPaidAmount - projectFee - platformFee;
         // Calculate the actual amount through Bonding Curve
-        (dErc20, dNative) = _mining(leftNative, totalSupply());
-        require(dErc20 > 1e9 && dNative > 1e9, "Mint: token amount is too low");
-        require(totalSupply() + dErc20 <= cap(), "Mint: exceed upper limit");
-        require(dErc20 >= minimalErc20Token, "Mint: mint amount less than minimal expect");
-        _mint(to, dErc20);
+        (daoTokenAmount, ) = _calculateMintAmountFromBondingCurve(nativeTokenPaidToBondingCurveAmount, _getCurrentSupply());
+        require(daoTokenAmount > 1e9 && nativeTokenPaidToBondingCurveAmount > 1e9, "Mint: token amount is too low");
+        require(_getCurrentSupply() + daoTokenAmount <= cap(), "Mint: exceed dao token max supply");
+        // 用户/前端会要求最少获得多少daoToken，交易繁忙时如果实际可获得的少于期望的daoToken数量，则revert
+        require(daoTokenAmount >= minDaoTokenRecievedAmount, "Mint: mint amount less than minimal expect recieved");
 
         {
-            (bool success, ) = _factory.call{value: platformFee}("");
+            (bool success, ) = _factory.getPlatformTreasury().call{value: platformFee}("");
+            // (bool success, ) = _factory.call{value: platformFee}("");
             require(success, "Transfer: charge factory gas failed");
         }
         {
-            (bool success, ) = _treasury.call{value: projectFee}("");
+            (bool success, ) = _projectTreasury.call{value: projectFee}("");
             require(success, "Transfer: charge project gas failed");
         }
+        // 把daoToken铸造给to用户
+        _mint(to, daoTokenAmount);
 
-        emit Mined(to, dErc20, dNative, platformFee, projectFee);
+        emit LogMint(to, daoTokenAmount, nativeTokenPaidAmount, platformFee, projectFee);
     }
 
     /**
-     * @dev testMint
+     * @dev 前端估算mint的铸造
      */
-    function estimateMint(uint256 nativeTokens)
+    function estimateMint(uint256 nativeTokenPaidAmount)
         public
         view
         returns (
-            uint256 dErc20,
-            uint256 dNative,
-            uint256 gasMint
+            uint256 daoTokenAmount,
+            uint256 ,
+            uint256 platformFee,
+            uint256 projectFee
         )
     {
-        gasMint = (nativeTokens * _treasuryMintFee) / MAX_GAS_RATE_DENOMINATOR;
-        gasMint = gasMint + (nativeTokens * _platformMintFee) / MAX_GAS_RATE_DENOMINATOR;
-        (dErc20, dNative) = _mining(nativeTokens - gasMint, totalSupply());
-        return (dErc20, dNative, gasMint);
+        (uint _platformMintTax,) = _factory.getTaxRateOfPlatform();
+        projectFee = (nativeTokenPaidAmount * _projectMintTax) / MAX_TAX_RATE_DENOMINATOR;
+        platformFee = (nativeTokenPaidAmount * _platformMintTax) / MAX_TAX_RATE_DENOMINATOR;
+        (daoTokenAmount,) = _calculateMintAmountFromBondingCurve(nativeTokenPaidAmount - projectFee - platformFee, _getCurrentSupply());
+        return (daoTokenAmount, nativeTokenPaidAmount, platformFee, projectFee);
     }
 
     /**
-     * @dev burn
+     * @dev burn实现的是将 daoToken打入bonding curve销毁，bonding curve计算相应的以太坊，再扣除手续费后将eth兑出的功能
      */
-    function burn(address to, uint256 erc20Tokens) public whenNotPaused nonReentrant {
+    function burn(address to, uint256 daoTokenPaidAmount) public whenNotPaused nonReentrant {
         // require(msg.value == 0, "Burn: dont need to attach ether");
         address from = _msgSender();
-        uint256 dErc20 = erc20Tokens;
-        uint256 dNative;
+        uint256 nativeTokenWithdrawAmount;
         // Calculate the actual amount through Bonding Curve
-        (dErc20, dNative) = _burning(erc20Tokens, totalSupply());
-        require(dErc20 > 1e9 && dNative > 1e9, "Balance: token amount is too low");
+        (, uint256 _platformBurnTax) = _factory.getTaxRateOfPlatform();
+        (, nativeTokenWithdrawAmount) = _calculateBurnAmountFromBondingCurve(daoTokenPaidAmount, _getCurrentSupply());
 
-        uint256 projectFee = (dNative * _treasuryBurnFee) / MAX_GAS_RATE_DENOMINATOR;
-        uint256 platformFee = (dNative * _platformBurnFee) / MAX_GAS_RATE_DENOMINATOR;
-        uint256 leftNative = dNative - projectFee - platformFee;
+        require(daoTokenPaidAmount > 1e9 && nativeTokenWithdrawAmount > 1e9, "Balance: token amount is too low");
+        require(address(this).balance >= nativeTokenWithdrawAmount, "Balance: balance is not enough");
 
-        require(address(this).balance >= dNative, "Balance: balance is not enough");
-        _burn(from, dErc20);
+        uint256 projectFee = (nativeTokenWithdrawAmount * _projectBurnTax) / MAX_TAX_RATE_DENOMINATOR;
+        uint256 platformFee = (nativeTokenWithdrawAmount * _platformBurnTax) / MAX_TAX_RATE_DENOMINATOR;
+        uint256 nativeTokenPaybackAmount = nativeTokenWithdrawAmount - projectFee - platformFee;
+
+        _burn(from, daoTokenPaidAmount);
 
         {
-            (bool success, ) = _factory.call{value: platformFee}("");
-            require(success, "Transfer: charge factory gas failed");
+            (bool success, ) = _factory.getPlatformTreasury().call{value: platformFee}("");
+            require(success, "Transfer: charge platform fee failed");
         }
         {
-            (bool success, ) = _treasury.call{value: projectFee}("");
-            require(success, "Transfer: charge project gas failed");
+            (bool success, ) = _projectTreasury.call{value: projectFee}("");
+            require(success, "Transfer: charge project fee failed");
         }
         {
-            if (leftNative > 0) {
-                (bool success, ) = to.call{value: leftNative}("");
-                require(success, "Transfer: burn failed");
+            if (nativeTokenPaybackAmount > 0) {
+                (bool success, ) = to.call{value: nativeTokenPaybackAmount}("");
+                require(success, "Transfer: pay back eth failed");
             }
         }
 
-        emit Burned(from, dErc20, leftNative, platformFee, projectFee);
+        emit LogBurned(from, daoTokenPaidAmount, nativeTokenPaybackAmount, platformFee, projectFee);
     }
 
-    function estimateBurn(uint256 erc20Tokens)
+    function estimateBurn(uint256 daoTokenAmount)
         public
         view
         returns (
-            uint256 dErc20,
-            uint256 dNative,
-            uint256 gasBurn
+            uint256,
+            uint256 nativeTokenAmount,
+            uint256 platformFee, 
+            uint256 projectFee
         )
     {
-        (dErc20, dNative) = _burning(erc20Tokens, totalSupply());
-        gasBurn = (dNative * _treasuryBurnFee) / MAX_GAS_RATE_DENOMINATOR;
-        gasBurn = gasBurn + (dNative * _platformBurnFee) / MAX_GAS_RATE_DENOMINATOR;
-        dNative = dNative - gasBurn;
-        return (dErc20, dNative, gasBurn);
+        (, uint256 _platformBurnTax) = _factory.getTaxRateOfPlatform();
+        (, nativeTokenAmount) = _calculateBurnAmountFromBondingCurve(daoTokenAmount, _getCurrentSupply());
+        
+        projectFee = (nativeTokenAmount * _projectBurnTax) / MAX_TAX_RATE_DENOMINATOR;
+        platformFee = (nativeTokenAmount * _platformBurnTax) / MAX_TAX_RATE_DENOMINATOR;
+        nativeTokenAmount = nativeTokenAmount - projectFee - platformFee;
+        return (daoTokenAmount, nativeTokenAmount, platformFee, projectFee);
     }
 
     function price() public view returns (uint256) {
-        return _price(totalSupply());
+        return _price(_getCurrentSupply());
     }
 
     /**
@@ -178,8 +193,19 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGu
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
         return interfaceId == type(IHotpotSwap).interfaceId || super.supportsInterface(interfaceId);
     }
+    
+    function _setProjectTaxRate(uint256 projectMintTax, uint256 projectBurnTax) internal {
+        _projectMintTax = projectMintTax;
+        _projectBurnTax = projectBurnTax;
+        (uint _platformMintTax, uint256 _platformBurnTax) = _factory.getTaxRateOfPlatform();
+        require(_projectMintTax+_platformMintTax < MAX_TAX_RATE_DENOMINATOR, "SetTax: Invalid number");
+        require(_projectBurnTax+_platformBurnTax < MAX_TAX_RATE_DENOMINATOR, "SetTax: Invalid number");
+        emit LogProjectTaxChanged();
+    }
 
-    event Mined(address _to, uint256 tokens, uint256 native, uint256 platformFee, uint256 projectFee);
+    event LogProjectTaxChanged();
+    
+    event LogMint(address to, uint256 daoTokenAmount, uint256 nativeTokenAmount, uint256 platformFee, uint256 projectFee);
 
-    event Burned(address _from, uint256 tokens, uint256 native, uint256 platformFee, uint256 projectFee);
+    event LogBurned(address from, uint256 daoTokenAmount, uint256 nativeTokenAmount, uint256 platformFee, uint256 projectFee);
 }

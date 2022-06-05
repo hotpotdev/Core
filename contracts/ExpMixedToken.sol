@@ -5,7 +5,7 @@ pragma solidity 0.8.13;
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 // abdk-consulting
-// import "https://github.com/abdk-consulting/abdk-libraries-solidity/blob/master/ABDKMath64x64.sol";
+// "https://github.com/abdk-consulting/abdk-libraries-solidity/blob/master/ABDKMath64x64.sol";
 import "./libraries/ABDKMath64x64.sol";
 
 // diy
@@ -17,47 +17,49 @@ contract ExpMixedBondingSwap is IBondingCurve {
     uint256 public immutable a;
     uint256 public immutable b;
 
+    string public constant BondingCurveType = "exponential";
     constructor() {
         a = 14;
         b = 2e6;
     }
-    // x => erc20, y => native
-    // F(x) = (a) e**(x/b)
-    // 2000.0 native => 9937641.487326497977995709 erc20
-    function mining(uint256 nativeTokens, uint256 erc20Supply) public view override returns (uint256 dx, uint256 dy) {
-        dy = nativeTokens;
-        require(erc20Supply < uint256(1 << 192));
-        require(nativeTokens < uint256(1 << 192));
-        uint256 e_index = (erc20Supply << 64) / (b * 1e18);
-        uint256 e_mod = (nativeTokens << 64) / (a * 1e18);
+    // x => daoTokenAmount, y => nativeTokenAmount
+    // y = (a) e**(x/b)
+    // 2000.0 nativeTokenAmount => 9937641.487326497977995709 daoTokenAmount
+    // daoTokenAmount = b * ln(e ^ (daoTokenCurrentSupply / b) + nativeTokenAmount / a) - daoTokenCurrentSupply
+    function calculateMintAmountFromBondingCurve(uint256 nativeTokenAmount, uint256 daoTokenCurrentSupply) public view override returns (uint256 daoTokenAmount, uint256) {
+        require(daoTokenCurrentSupply < uint256(1 << 192));
+        require(nativeTokenAmount < uint256(1 << 192));
+        uint256 e_index = (daoTokenCurrentSupply << 64) / (b * 1e18);
+        uint256 e_mod = (nativeTokenAmount << 64) / (a * 1e18);
         require(e_index <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
         require(e_mod <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
         int128 fabdk_e_index = int128(uint128(e_index));
         int128 fabdk_e_mod = int128(uint128(e_mod));
         int128 fabdk_x = (fabdk_e_index.exp() + fabdk_e_mod).ln();
         require(fabdk_x >= 0);
-        dx = (((uint256(uint128(fabdk_x))) * b * 1e18) >> 64) - erc20Supply;
-        return (dx, dy);
+        daoTokenAmount = (((uint256(uint128(fabdk_x))) * b * 1e18) >> 64) - daoTokenCurrentSupply;
+        return (daoTokenAmount, nativeTokenAmount);
     }
-
-    function burning(uint256 erc20Tokens, uint256 erc20Supply) public view override returns (uint256 dx, uint256 dy) {
-        dx = erc20Tokens;
-        require(erc20Supply < uint256(1 << 192));
-        require(erc20Tokens < uint256(1 << 192));
-        uint256 e_index_1 = (erc20Supply << 64) / (b * 1e18);
-        uint256 e_index_0 = ((erc20Supply - erc20Tokens) << 64) / (b * 1e18);
+    // x => daoTokenAmount, y => nativeTokenAmount
+    // y = (a) e**(x/b)
+    // nativeTokenAmount = a * (e ^ (daoTokenCurrentSupply / b) - e ^ ((daoTokenCurrentSupply - daoTokenAmount) / b))
+    function calculateBurnAmountFromBondingCurve(uint256 daoTokenAmount, uint256 daoTokenCurrentSupply) public view override returns (uint256, uint256 nativeTokenAmount) {
+        require(daoTokenCurrentSupply < uint256(1 << 192));
+        require(daoTokenAmount < uint256(1 << 192));
+        uint256 e_index_1 = (daoTokenCurrentSupply << 64) / (b * 1e18);
+        uint256 e_index_0 = ((daoTokenCurrentSupply - daoTokenAmount) << 64) / (b * 1e18);
         require(e_index_1 <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
         require(e_index_0 <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
         int128 fabdk_e_index_1 = int128(uint128(e_index_1));
         int128 fabdk_e_index_0 = int128(uint128(e_index_0));
         int128 fabdk_y = fabdk_e_index_1.exp() - fabdk_e_index_0.exp();
         require(fabdk_y >= 0);
-        dy = ((uint256(uint128(fabdk_y))) * a * 1e18) >> 64;
-        return (dx, dy);
+        nativeTokenAmount = ((uint256(uint128(fabdk_y))) * a * 1e18) >> 64;
+        return (daoTokenAmount, nativeTokenAmount);
     }
-
-    function price(uint256 erc20Supply) public view override returns (uint256) {
-        uint256 e_index = (erc20Supply << 64) / (b * 1e18);
+    // price = a / b * e ^ (daoTokenCurrentSupply / b)
+    function price(uint256 daoTokenCurrentSupply) public view override returns (uint256) {
+        uint256 e_index = (daoTokenCurrentSupply << 64) / (b * 1e18);
         require(e_index <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
         int128 fabdk_e_index = int128(uint128(e_index));
         int128 fabdk_y = fabdk_e_index.exp();
@@ -71,16 +73,19 @@ contract ExpMixedHotpotToken is ERC20HotpotMixed {
     function initialize(
         string memory name,
         string memory symbol,
-        address treasury,
-        uint256 mintRate,
-        uint256 burnRate,
-        bool hasPreMint,
-        uint256 mintCap,
-        bytes calldata
+        address projectAdmin,
+        address projectTreasury,
+        uint256 projectMintTax,
+        uint256 projectBurnTax,
+        bytes calldata data
     ) public initializer {
+        super.initialize(name, symbol, projectAdmin, projectTreasury, projectMintTax, projectBurnTax, _msgSender());
+        (bool hasPreMint,uint256 mintCap) = abi.decode(data, (bool, uint256));
         require(mintCap <= 25000000e18, "Initialize: mint Cap too large");
-        super.initialize(name, symbol, treasury, mintRate, burnRate, msg.sender, hasPreMint, mintCap);
         ExpMixedBondingSwap curve = new ExpMixedBondingSwap();
         _changeCoinMaker(address(curve));
+        
+        _initPremint(hasPreMint);
+        _setMintCap(mintCap);
     }
 }
