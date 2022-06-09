@@ -30,7 +30,7 @@ extendEnvironment(async (hre: any) => {
   const DefaultMintCap = defines.Unit.Ether.mul(25000000)
   hre.expToken = async (mintRate=100, burnRate=100,premint=false, mintCap=DefaultMintCap) => 
     await initFactory(hre, "Exp", mintRate, burnRate,premint,mintCap);
-  hre.linearToken = async (mintRate, burnRate,premint=false, mintCap=DefaultMintCap) => 
+  hre.linearToken = async (mintRate=100, burnRate=100,premint=false, mintCap=DefaultMintCap) => 
     await initFactory(hre, "Linear", mintRate, burnRate,premint,mintCap);
 });
 
@@ -129,9 +129,9 @@ export const defines = {
         Ether : ethers.BigNumber.from('1000000000000000000')
     },
     Id: {
+        Buyer: 0,
         Treasury: 1,
         Platform: 2,
-        Buyer: 3,
         Buyer1: 4,
         Buyer2: 5,
         Buyer3: 6,

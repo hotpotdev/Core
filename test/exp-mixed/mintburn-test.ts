@@ -73,7 +73,7 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
             let buyer = signers[Id.Buyer]
             let treasury = signers[Id.Treasury]
             let platform = signers[Id.Platform]
-            const token = await hre.linearToken(100,100)
+            const token = await hre.linearToken()
             const hotpotTokenAbi = await ExpMixedHotpotToken__factory.connect(token.address,buyer)
 
             await network.provider.send("hardhat_setBalance", [treasury.address, '0x0'])

@@ -55,9 +55,15 @@ async function main() {
             '价格eth/erc20', ethers.utils.formatEther(price), '\n',
             'BUYER eth 余额', ethers.utils.formatEther(buyerBalance),
             'BUYER erc20 余额', ethers.utils.formatEther(erc20Balance),
-            'BUYER eth 可兑取', ethers.utils.formatEther(estimateBurn.dy),
-            '误差损失 eth wei', contractAsset.sub(estimateBurn.dy).toString(), '\n',
+            'BUYER eth 可兑取', ethers.utils.formatEther(estimateBurn.nativeTokenAmount.add(estimateBurn.platformFee).add(estimateBurn.projectFee)),
+            '误差损失 eth wei', contractAsset.sub(estimateBurn.nativeTokenAmount.add(estimateBurn.platformFee).add(estimateBurn.projectFee)).toString(), '\n',
         )
+        {
+            let tx1 = await hotpotFactoryAbi.connect(treasury).pause(tokenProxy.address)
+            await tx1.wait()
+            let tx2 = await hotpotFactoryAbi.connect(treasury).unpause(tokenProxy.address)
+            await tx2.wait()
+        }
     }
 }
 
