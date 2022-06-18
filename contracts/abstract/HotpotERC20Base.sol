@@ -9,12 +9,7 @@ import "./SwapCurve.sol";
 import "./HotpotMetadata.sol";
 import "../interfaces/IHotpotFactory.sol";
 
-abstract contract HotpotERC20Base is
-    ERC20PausableUpgradeable,
-    HotpotMetadata,
-    SwapCurve,
-    AccessControlUpgradeable
-{
+abstract contract HotpotERC20Base is ERC20PausableUpgradeable, HotpotMetadata, SwapCurve, AccessControlUpgradeable {
     bytes32 public constant FACTORY_ROLE = keccak256("FACTORY_ROLE");
     bytes32 public constant PROJECT_ADMIN_ROLE = keccak256("PROJECT_ADMIN_ROLE");
     bytes32 public constant PREMINT_ROLE = keccak256("PREMINT_ROLE");
@@ -26,6 +21,10 @@ abstract contract HotpotERC20Base is
     uint256 private _maxDaoTokenSupply = 1e36;
     bool private _premint = false;
     bool private _doomsday = false;
+
+    function getProjectAdminRole() external pure returns (bytes32 role) {
+        return PROJECT_ADMIN_ROLE;
+    }
 
     // 设置daoToken的铸造上限
     function cap() public view returns (uint256) {
@@ -43,7 +42,7 @@ abstract contract HotpotERC20Base is
     function getFactory() public view returns (address) {
         return address(_factory);
     }
-    
+
     function getProjectAdmin() public view returns (address) {
         return _projectAdmin;
     }
@@ -59,7 +58,7 @@ abstract contract HotpotERC20Base is
     function normalizeMint() public onlyRole(PROJECT_ADMIN_ROLE) {
         _normalizeMint();
     }
-    
+
     function pause() public onlyRole(FACTORY_ROLE) {
         _pause();
     }
@@ -74,7 +73,7 @@ abstract contract HotpotERC20Base is
         }
         _declareDoomsday();
     }
-    
+
     function setProjectAdmin(address newProjectAdmin) public onlyRole(PROJECT_ADMIN_ROLE) {
         require(newProjectAdmin != address(0), "Invalid Address");
         _grantRole(PROJECT_ADMIN_ROLE, newProjectAdmin);
@@ -94,10 +93,7 @@ abstract contract HotpotERC20Base is
     }
 
     function _setMintCap(uint256 upperlimit) internal {
-        require(
-            upperlimit >= totalSupply(),
-            "Warning: Mint Cap must great or equl than current supply"
-        );
+        require(upperlimit >= totalSupply(), "Warning: Mint Cap must great or equl than current supply");
         _maxDaoTokenSupply = upperlimit;
     }
 
@@ -105,7 +101,7 @@ abstract contract HotpotERC20Base is
         _premint = pre;
     }
 
-    function _initProject(address projectAdmin,address projectTreasury) internal {
+    function _initProject(address projectAdmin, address projectTreasury) internal {
         require(projectAdmin != address(0), "Invalid Admin Address");
         require(projectTreasury != address(0), "Invalid Treasury Address");
         _projectAdmin = projectAdmin;
@@ -128,10 +124,7 @@ abstract contract HotpotERC20Base is
     }
 
     function _destroy() internal {
-        require(
-            _doomsday,
-            "Warning: You are not allowed to destroy under normal circumstances"
-        );
+        require(_doomsday, "Warning: You are not allowed to destroy under normal circumstances");
         emit LogDestroyed(_msgSender());
         selfdestruct(payable(_projectTreasury));
     }
@@ -141,4 +134,6 @@ abstract contract HotpotERC20Base is
     event LogDestroyed(address account);
     event LogProjectAdminChanged(address newAccount);
     event LogProjectTreasuryChanged(address newAccount);
+
+    fallback() external {}
 }

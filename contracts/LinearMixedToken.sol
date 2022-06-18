@@ -15,6 +15,7 @@ contract LinearMixedBondingSwap is IBondingCurve {
     uint256 public immutable p;
 
     string public constant BondingCurveType = "linear";
+
     constructor(uint256 _k, uint256 _p) {
         require(_k <= 100000 && _k > 0, "Create: Invalid k");
         require(_p <= 1e24 && _p >= 0, "Create: Invalid p");
@@ -24,15 +25,28 @@ contract LinearMixedBondingSwap is IBondingCurve {
 
     // x => erc20, y => native
     // p(x) = x / k + p
-    function calculateMintAmountFromBondingCurve(uint256 nativeTokenAmount, uint256 daoTokenCurrentSupply) public view override returns (uint256 daoTokenAmount, uint256 ) {
+    function calculateMintAmountFromBondingCurve(uint256 nativeTokenAmount, uint256 daoTokenCurrentSupply)
+        public
+        view
+        override
+        returns (uint256 daoTokenAmount, uint256)
+    {
         uint256 daoTokenCurrentPrice = daoTokenCurrentSupply / k + p;
-        daoTokenAmount = ((daoTokenCurrentPrice * daoTokenCurrentPrice + 2 * nativeTokenAmount * 1e18 / k).sqrt() - daoTokenCurrentPrice) * k;
+        daoTokenAmount =
+            ((daoTokenCurrentPrice * daoTokenCurrentPrice + (2 * nativeTokenAmount * 1e18) / k).sqrt() -
+                daoTokenCurrentPrice) *
+            k;
         return (daoTokenAmount, nativeTokenAmount);
     }
 
-    function calculateBurnAmountFromBondingCurve(uint256 daoTokenAmount, uint256 daoTokenCurrentSupply) public view override returns (uint256, uint256 nativeTokenAmount) {
+    function calculateBurnAmountFromBondingCurve(uint256 daoTokenAmount, uint256 daoTokenCurrentSupply)
+        public
+        view
+        override
+        returns (uint256, uint256 nativeTokenAmount)
+    {
         uint256 daoTokenCurrentPrice = daoTokenCurrentSupply / k + p;
-        nativeTokenAmount = (daoTokenCurrentPrice * daoTokenAmount - (daoTokenAmount * daoTokenAmount / k) / 2) / 1e18;
+        nativeTokenAmount = (daoTokenCurrentPrice * daoTokenAmount - ((daoTokenAmount * daoTokenAmount) / k) / 2) / 1e18;
         return (daoTokenAmount, nativeTokenAmount);
     }
 
@@ -42,7 +56,6 @@ contract LinearMixedBondingSwap is IBondingCurve {
 }
 
 contract LinearMixedHotpotToken is ERC20HotpotMixed {
-
     function initialize(
         string memory name,
         string memory symbol,
@@ -53,11 +66,11 @@ contract LinearMixedHotpotToken is ERC20HotpotMixed {
         bytes calldata data
     ) public initializer {
         super.initialize(name, symbol, projectAdmin, projectTreasury, projectMintTax, projectBurnTax, _msgSender());
-        (bool hasPreMint,uint256 mintCap,uint256 k, uint256 p) = abi.decode(data, (bool, uint256,uint256,uint256));
+        (bool hasPreMint, uint256 mintCap, uint256 k, uint256 p) = abi.decode(data, (bool, uint256, uint256, uint256));
         require(mintCap <= 1e30, "Initialize: mint Cap too large");
         LinearMixedBondingSwap curve = new LinearMixedBondingSwap(k, p);
         _changeCoinMaker(address(curve));
-        
+
         _initPremint(hasPreMint);
         _setMintCap(mintCap);
     }

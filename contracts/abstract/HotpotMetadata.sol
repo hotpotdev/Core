@@ -3,16 +3,15 @@
 
 pragma solidity ^0.8.0;
 
-contract HotpotMetadata{
-
-    string private _meta; 
+contract HotpotMetadata {
+    string private _meta;
 
     function _setMetadata(string memory uri) internal {
         _meta = uri;
         emit LogMetadataChanged();
     }
 
-    function getMetadata() public view virtual returns (string memory){
+    function getMetadata() public view virtual returns (string memory) {
         return _meta;
     }
 

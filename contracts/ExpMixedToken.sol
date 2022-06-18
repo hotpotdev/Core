@@ -18,15 +18,22 @@ contract ExpMixedBondingSwap is IBondingCurve {
     uint256 public immutable b;
 
     string public constant BondingCurveType = "exponential";
+
     constructor() {
         a = 14;
         b = 2e6;
     }
+
     // x => daoTokenAmount, y => nativeTokenAmount
     // y = (a) e**(x/b)
     // 2000.0 nativeTokenAmount => 9937641.487326497977995709 daoTokenAmount
     // daoTokenAmount = b * ln(e ^ (daoTokenCurrentSupply / b) + nativeTokenAmount / a) - daoTokenCurrentSupply
-    function calculateMintAmountFromBondingCurve(uint256 nativeTokenAmount, uint256 daoTokenCurrentSupply) public view override returns (uint256 daoTokenAmount, uint256) {
+    function calculateMintAmountFromBondingCurve(uint256 nativeTokenAmount, uint256 daoTokenCurrentSupply)
+        public
+        view
+        override
+        returns (uint256 daoTokenAmount, uint256)
+    {
         require(daoTokenCurrentSupply < uint256(1 << 192));
         require(nativeTokenAmount < uint256(1 << 192));
         uint256 e_index = (daoTokenCurrentSupply << 64) / (b * 1e18);
@@ -40,10 +47,16 @@ contract ExpMixedBondingSwap is IBondingCurve {
         daoTokenAmount = (((uint256(uint128(fabdk_x))) * b * 1e18) >> 64) - daoTokenCurrentSupply;
         return (daoTokenAmount, nativeTokenAmount);
     }
+
     // x => daoTokenAmount, y => nativeTokenAmount
     // y = (a) e**(x/b)
     // nativeTokenAmount = a * (e ^ (daoTokenCurrentSupply / b) - e ^ ((daoTokenCurrentSupply - daoTokenAmount) / b))
-    function calculateBurnAmountFromBondingCurve(uint256 daoTokenAmount, uint256 daoTokenCurrentSupply) public view override returns (uint256, uint256 nativeTokenAmount) {
+    function calculateBurnAmountFromBondingCurve(uint256 daoTokenAmount, uint256 daoTokenCurrentSupply)
+        public
+        view
+        override
+        returns (uint256, uint256 nativeTokenAmount)
+    {
         require(daoTokenCurrentSupply < uint256(1 << 192));
         require(daoTokenAmount < uint256(1 << 192));
         uint256 e_index_1 = (daoTokenCurrentSupply << 64) / (b * 1e18);
@@ -57,6 +70,7 @@ contract ExpMixedBondingSwap is IBondingCurve {
         nativeTokenAmount = ((uint256(uint128(fabdk_y))) * a * 1e18) >> 64;
         return (daoTokenAmount, nativeTokenAmount);
     }
+
     // price = a / b * e ^ (daoTokenCurrentSupply / b)
     function price(uint256 daoTokenCurrentSupply) public view override returns (uint256) {
         uint256 e_index = (daoTokenCurrentSupply << 64) / (b * 1e18);
@@ -64,7 +78,7 @@ contract ExpMixedBondingSwap is IBondingCurve {
         int128 fabdk_e_index = int128(uint128(e_index));
         int128 fabdk_y = fabdk_e_index.exp();
         require(fabdk_y >= 0);
-        uint256 p = ((uint256(uint128(fabdk_y))) * a * 1e18 / b) >> 64;
+        uint256 p = (((uint256(uint128(fabdk_y))) * a * 1e18) / b) >> 64;
         return p;
     }
 }
@@ -80,11 +94,11 @@ contract ExpMixedHotpotToken is ERC20HotpotMixed {
         bytes calldata data
     ) public initializer {
         super.initialize(name, symbol, projectAdmin, projectTreasury, projectMintTax, projectBurnTax, _msgSender());
-        (bool hasPreMint,uint256 mintCap) = abi.decode(data, (bool, uint256));
+        (bool hasPreMint, uint256 mintCap) = abi.decode(data, (bool, uint256));
         require(mintCap <= 25000000e18, "Initialize: mint Cap too large");
         ExpMixedBondingSwap curve = new ExpMixedBondingSwap();
         _changeCoinMaker(address(curve));
-        
+
         _initPremint(hasPreMint);
         _setMintCap(mintCap);
     }

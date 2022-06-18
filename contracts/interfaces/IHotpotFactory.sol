@@ -26,7 +26,7 @@ interface IHotpotFactory {
     function getToken(uint256 index) external view returns (address addr);
 
     function getPlatformAdmin() external view returns (address);
-    
+
     function getPlatformTreasury() external view returns (address);
 
     function declareDoomsday(address proxyAddress) external;
@@ -35,18 +35,29 @@ interface IHotpotFactory {
 
     function unpause(address proxyAddress) external;
 
-    function upgradeTokenImplement(address proxyAddress, bytes calldata data) external payable;
+    function requestUpgrade(address proxyAddress, bytes calldata data) external;
 
-    event LogTokenDeployed(string tokenType,uint tokenId,address deployedAddr);
+    function rejectUpgrade(address proxyAddress, string calldata reason) external;
 
+    function upgradeTokenImplement(address proxyAddress) external payable;
+
+    event LogTokenDeployed(string tokenType, uint256 tokenId, address deployedAddr);
+
+    event LogTokenUpgradeRequested(
+        address proxyAddress,
+        uint256 timelock,
+        address implementAddr,
+        address requester,
+        bytes data
+    );
+    event LogTokenUpgradeRejected(address proxyAddress, address rejecter, string reason);
     event LogTokenImplementUpgraded(address proxyAddress, string tokenType, address implementAddr);
 
     event LogTokenTypeImplAdded(string tokenType, address impl);
-    
+
     event LogPlatformAdminChanged(address newAccount);
 
     event LogPlatformTreasuryChanged(address newAccount);
 
     event LogPlatformTaxChanged();
-
 }

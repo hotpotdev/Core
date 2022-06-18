@@ -2,26 +2,23 @@
 
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol";
+
 /**
  * @dev Interface of the hotpot swap
  */
-interface IHotpotToken {
+interface IHotpotToken is IAccessControlUpgradeable {
+    function getProjectAdminRole() external pure returns (bytes32 role);
+
     function setMetadata(string memory url) external;
 
     function getMetadata() external view returns (string memory);
 
-    function getTaxRateOfProject()
-        external
-        view
-        returns (uint256 projectMintRate, uint256 projectBurnRate);
+    function getTaxRateOfProject() external view returns (uint256 projectMintRate, uint256 projectBurnRate);
 
-    function getTaxRateOfPlatform()
-        external
-        view
-        returns (uint256 platformMintTax, uint256 platformBurnTax);
+    function getTaxRateOfPlatform() external view returns (uint256 platformMintTax, uint256 platformBurnTax);
 
-    function setProjectTaxRate(uint256 projectMintTax, uint256 projectBurnTax)
-        external;
+    function setProjectTaxRate(uint256 projectMintTax, uint256 projectBurnTax) external;
 
     function platform() external view returns (address);
 
@@ -45,9 +42,7 @@ interface IHotpotToken {
 
     function price() external view returns (uint256);
 
-    function mint(address to, uint256 minDaoTokenRecievedAmount)
-        external
-        payable;
+    function mint(address to, uint256 minDaoTokenRecievedAmount) external payable;
 
     function estimateMint(uint256 nativeTokenPaidAmount)
         external

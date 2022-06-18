@@ -9,12 +9,11 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "../abstract/HotpotERC20Base.sol";
 import "../interfaces/IHotpotSwap.sol";
 
-
 abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGuard {
     uint256 internal constant MAX_TAX_RATE_DENOMINATOR = 10000;
 
-    uint256 internal _projectMintTax = 100;
-    uint256 internal _projectBurnTax = 100;
+    uint256 internal _projectMintTax = 0;
+    uint256 internal _projectBurnTax = 0;
 
     function initialize(
         string memory name,
@@ -26,11 +25,13 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGu
         address factory
     ) public initializer {
         __ERC20_init(name, symbol);
-        _initProject(projectAdmin,projectTreasury);
+        _initProject(projectAdmin, projectTreasury);
         _initFactory(factory);
+        _projectMintTax = MAX_TAX_RATE_DENOMINATOR;
+        _projectBurnTax = MAX_TAX_RATE_DENOMINATOR;
 
         _setProjectTaxRate(projectMintTax, projectBurnTax);
-        
+
         _setupRole(FACTORY_ROLE, factory);
 
         _setupRole(PROJECT_ADMIN_ROLE, _projectAdmin);
@@ -43,43 +44,29 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGu
         _setProjectTaxRate(projectMintTax, projectBurnTax);
     }
 
-    function getTaxRateOfProject()
-        public
-        view
-        returns (
-            uint256 projectMintTax,
-            uint256 projectBurnTax
-        )
-    {
+    function getTaxRateOfProject() public view returns (uint256 projectMintTax, uint256 projectBurnTax) {
         return (_projectMintTax, _projectBurnTax);
     }
 
-    function getTaxRateOfPlatform()
-        public
-        view
-        returns (
-            uint256 platformMintTax,
-            uint256 platformBurnTax
-        )
-    {
+    function getTaxRateOfPlatform() public view returns (uint256 platformMintTax, uint256 platformBurnTax) {
         return _factory.getTaxRateOfPlatform();
     }
 
     //  daoToken 会通过bonding curve铸造销毁所以totalSupply会动态变化
-    function _getCurrentSupply() internal view returns (uint256){
+    function _getCurrentSupply() internal view returns (uint256) {
         return totalSupply();
     }
 
     function mint(address to, uint256 minDaoTokenRecievedAmount) public payable whenNotPaused nonReentrant {
+        require(to != address(0), "can not mint to address(0)");
         // minDaoTokenRecievedAmount是为了用户购买的时候，处理滑点，防止在极端情况获得远少于期望的代币
         if (premint()) {
             _checkRole(PREMINT_ROLE, _msgSender());
         }
         uint256 daoTokenAmount;
         uint256 nativeTokenPaidAmount = msg.value;
-        
-        
-        (uint _platformMintTax,) = _factory.getTaxRateOfPlatform();
+
+        (uint256 _platformMintTax, ) = _factory.getTaxRateOfPlatform();
         uint256 projectFee = (nativeTokenPaidAmount * _projectMintTax) / MAX_TAX_RATE_DENOMINATOR;
         uint256 platformFee = (nativeTokenPaidAmount * _platformMintTax) / MAX_TAX_RATE_DENOMINATOR;
         // 计算实际打入bonding curve合约的native token(e.g., eth/bnb)的数量
@@ -114,15 +101,18 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGu
         view
         returns (
             uint256 daoTokenAmount,
-            uint256 ,
+            uint256,
             uint256 platformFee,
             uint256 projectFee
         )
     {
-        (uint _platformMintTax,) = _factory.getTaxRateOfPlatform();
+        (uint256 _platformMintTax, ) = _factory.getTaxRateOfPlatform();
         projectFee = (nativeTokenPaidAmount * _projectMintTax) / MAX_TAX_RATE_DENOMINATOR;
         platformFee = (nativeTokenPaidAmount * _platformMintTax) / MAX_TAX_RATE_DENOMINATOR;
-        (daoTokenAmount,) = _calculateMintAmountFromBondingCurve(nativeTokenPaidAmount - projectFee - platformFee, _getCurrentSupply());
+        (daoTokenAmount, ) = _calculateMintAmountFromBondingCurve(
+            nativeTokenPaidAmount - projectFee - platformFee,
+            _getCurrentSupply()
+        );
         return (daoTokenAmount, nativeTokenPaidAmount, platformFee, projectFee);
     }
 
@@ -130,6 +120,7 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGu
      * @dev burn实现的是将 daoToken打入bonding curve销毁，bonding curve计算相应的以太坊，再扣除手续费后将eth兑出的功能
      */
     function burn(address to, uint256 daoTokenPaidAmount) public whenNotPaused nonReentrant {
+        require(to != address(0), "can not burn to address(0)");
         // require(msg.value == 0, "Burn: dont need to attach ether");
         address from = _msgSender();
         uint256 nativeTokenWithdrawAmount;
@@ -170,13 +161,13 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGu
         returns (
             uint256,
             uint256 nativeTokenAmount,
-            uint256 platformFee, 
+            uint256 platformFee,
             uint256 projectFee
         )
     {
         (, uint256 _platformBurnTax) = _factory.getTaxRateOfPlatform();
         (, nativeTokenAmount) = _calculateBurnAmountFromBondingCurve(daoTokenAmount, _getCurrentSupply());
-        
+
         projectFee = (nativeTokenAmount * _projectBurnTax) / MAX_TAX_RATE_DENOMINATOR;
         platformFee = (nativeTokenAmount * _platformBurnTax) / MAX_TAX_RATE_DENOMINATOR;
         nativeTokenAmount = nativeTokenAmount - projectFee - platformFee;
@@ -193,18 +184,20 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGu
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
         return interfaceId == type(IHotpotSwap).interfaceId || super.supportsInterface(interfaceId);
     }
-    
+
     function _setProjectTaxRate(uint256 projectMintTax, uint256 projectBurnTax) internal {
+        require(_projectMintTax >= projectMintTax, "SetTax:Project Mint Tax Rate must lower than before");
+        require(_projectBurnTax >= projectBurnTax, "SetTax:Project Burn Tax Rate must lower than before");
         _projectMintTax = projectMintTax;
         _projectBurnTax = projectBurnTax;
-        (uint _platformMintTax, uint256 _platformBurnTax) = _factory.getTaxRateOfPlatform();
-        require(_projectMintTax+_platformMintTax < MAX_TAX_RATE_DENOMINATOR, "SetTax: Invalid number");
-        require(_projectBurnTax+_platformBurnTax < MAX_TAX_RATE_DENOMINATOR, "SetTax: Invalid number");
+        (uint256 _platformMintTax, uint256 _platformBurnTax) = _factory.getTaxRateOfPlatform();
+        require(_projectMintTax + _platformMintTax < MAX_TAX_RATE_DENOMINATOR, "SetTax: Invalid number");
+        require(_projectBurnTax + _platformBurnTax < MAX_TAX_RATE_DENOMINATOR, "SetTax: Invalid number");
         emit LogProjectTaxChanged();
     }
 
     event LogProjectTaxChanged();
-    
+
     event LogMint(address to, uint256 daoTokenAmount, uint256 nativeTokenAmount, uint256 platformFee, uint256 projectFee);
 
     event LogBurned(address from, uint256 daoTokenAmount, uint256 nativeTokenAmount, uint256 platformFee, uint256 projectFee);
