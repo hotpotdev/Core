@@ -93,6 +93,8 @@ const config: HardhatUserConfig = {
     },
     gpnode: {
       url: process.env.GPNODE_URL || "",
+      accounts:
+      process.env.PRIVATE_KEY !== undefined ? process.env.PRIVATE_KEY.split(',') : [],
     },
     ropsten: {
       url: process.env.ROPSTEN_URL || ""
@@ -100,12 +102,12 @@ const config: HardhatUserConfig = {
     rinkby: {
       url: process.env.RINKBY_URL || "",
       accounts:
-      process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      process.env.PRIVATE_KEY !== undefined ? process.env.PRIVATE_KEY.split(',') : [],
     },
     goerli: {
       url: process.env.GOERLI_URL || "",
       accounts:
-      process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      process.env.PRIVATE_KEY !== undefined ? process.env.PRIVATE_KEY.split(',') : [],
     }
   },
   gasReporter: {
