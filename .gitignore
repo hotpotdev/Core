@@ -6,7 +6,6 @@ coverage.json
 typechain
 developing
 abi
-setBalance.ts
 
 #Hardhat files
 cache

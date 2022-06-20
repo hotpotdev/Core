@@ -1,85 +1,95 @@
 import { ethers, network, upgrades } from "hardhat";
 import { defines } from "../hardhat.config";
-import { ExpMixedHotpotToken__factory, HotpotTokenFactory__factory } from "../typechain";
+import { ExpMixedHotpotToken__factory, HotpotTokenFactory, HotpotTokenFactory__factory } from "../typechain";
 const Web3 = require("web3");
+const hre = require("hardhat")
 
 const round = 10
 const Ether = defines.Unit.Ether
+const Wei = defines.Unit.Wei
 const Id = defines.Id
 
-async function main() {
+const web3 = new Web3(network.provider);
 
-    const hre = require('hardhat')
-    // Compile our Contracts, just in case
-    await hre.run('compile');
-    
+const expTokenContract="ExpMixedHotpotToken"
+const linearTokenContract="LinearMixedHotpotToken"
+const hotpotFactoryContract = "HotpotTokenFactory"
+
+async function main() {
     let signers = await ethers.getSigners()
     let admin = signers[0]
-    let web3 = new Web3(network.provider);
+    let factoryAddr = await deployFactory(admin.address,admin.address)
+    let factoryAbi = HotpotTokenFactory__factory.connect(factoryAddr,admin)
+    await addTokenImplementToFactory(factoryAbi,"Exp",expTokenContract)
+    await deployExpToken(factoryAbi,"Exp","Test Exp","Test Symbol",admin.address,admin.address,100,200,false,Ether.mul(25000000))
+}
 
-    let expTokenContract="ExpMixedHotpotToken"
-    let linearTokenContract="LinearMixedHotpotToken"
-    let hotpotFactoryContract = "HotpotTokenFactory"
-
-    console.log("wallet balance",ethers.utils.formatEther(await admin.getBalance()))
-    const DefaultMintCap = defines.Unit.Ether.mul(25000000)
+const deployFactory = async (admin:string,treasury:string) => {
     const HotpotFactory = await ethers.getContractFactory(hotpotFactoryContract)
     
-    const factory = await upgrades.deployProxy(HotpotFactory,[admin.address,admin.address])
+    const factory = await upgrades.deployProxy(HotpotFactory,[admin,treasury])
     await factory.deployed()
     const factoryAddr = factory.address;
     const implAddr = await upgrades.erc1967.getImplementationAddress(factoryAddr)
-    console.log("Factory",factoryAddr)
-    console.log("Implement",implAddr)
-    // await hre.run("verify:verify", {
-    //     address: factoryAddr,
-    // })
-    // await hre.run("verify:verify", {
-    //     address: implAddr,
-    //     constructorArguments: [admin.address,admin.address]
-    // })
-    // const expToken = await ethers.getContractFactory(expTokenContract);
-    // const exp = await expToken.deploy();
-    // await exp.deployed()
-    // console.log("exp model deployed")
-    // // const linearToken = await ethers.getContractFactory(linearTokenContract);
-    // // const linear = await linearToken.deploy();
-    // // await linear.deployed()
-    // // console.log("linear model deployed")
+    console.warn("Deploying Factory...")
+    console.log("Factory Address:",factoryAddr)
+    console.log("Implement Address:",implAddr)
+    console.log()
+    return factoryAddr
+}
 
-    // let addImplTx1 = await factory.addImplement("Exp", exp.address);
-    // await addImplTx1.wait()
-    // console.log('add exp impl')
-    // // let addImplTx2 = await factory.addImplement("Linear", linear.address);
-    // // await addImplTx2.wait()
-    // // console.log('add linear impl')
+const addTokenImplementToFactory = async (factoryAbi,type,tokenContractType = expTokenContract) => {
+    const tokenFactory = await ethers.getContractFactory(tokenContractType);
+    const token = await tokenFactory.deploy();
+    await token.deployed()
+    let addImplTx = await factoryAbi.addImplement(type, token.address);
+    await addImplTx.wait()
+    console.warn("Add Token Implement...")
+    console.log(tokenContractType,"|",type,"\nModel Address:",token.address)
+    console.log()
+}
 
-    // let mintRate = 100
-    // let burnRate = 100;
-    // const data1 = web3.eth.abi.encodeParameters(["bool","uint256","uint256", "uint256"], [false,DefaultMintCap,ethers.BigNumber.from('100'), ethers.BigNumber.from('0')]);
-    // const data2 = web3.eth.abi.encodeParameters(["bool","uint256"], [false,DefaultMintCap]);
-    // // let dtTx1 = await factory.deployToken("Linear", "TLT", "TLT", admin.address, admin.address, mintRate, burnRate, data1);
-    // // await dtTx1.wait()
-    // let dtTx2 = await factory.deployToken("Exp", "TET", "TET", admin.address, admin.address, mintRate, burnRate, data2);
-    // await dtTx2.wait()
-    // // const linearAddr = await factory.getToken(0);
-    // // const expAddr = await factory.getToken(1);
-    // const expAddr = await factory.getToken(0);
-    // // console.log("first linear token",linearAddr)
-    // console.log("first exp token",expAddr)
-    // let tokenAbi = ExpMixedHotpotToken__factory.connect(expAddr,admin)
-    // let mintTx = await tokenAbi.mint(admin.address,0,{value:Ether.div(10)})
-    // await mintTx.wait()
-    // let erc20Balance = await tokenAbi.balanceOf(admin.address)
-    // console.log("mint",ethers.utils.formatEther(erc20Balance))
-    // let burnTx = await tokenAbi.burn(admin.address,erc20Balance)
-    // await burnTx.wait()
-    // console.log("burn",ethers.utils.formatEther(erc20Balance))
+const deployExpToken = async (factoryAbi:HotpotTokenFactory,type,name,symbol,admin:string,treasury:string,mintRate = 100,burnRate = 100,premint = false,mintCap = Ether.mul(25000000)) => {
+    const data2 = web3.eth.abi.encodeParameters(["bool","uint256"], [premint,mintCap]);
+    let dtTx2 = await factoryAbi.deployToken(type, name, symbol, admin, treasury, mintRate, burnRate, data2);
+    let tx = await dtTx2.wait()
+    const expAddr = tx.events[7].address
+    console.error("Deploying Token...")
+    console.log(tx.events[7].event,'!')
+    console.log(type,expAddr)
+    console.log()
+}
+
+const deployLinearToken = async (factoryAbi:HotpotTokenFactory,type,name,symbol,admin:string,treasury:string,mintRate = 100,burnRate = 100, premint = false,mintCap = Ether.mul(25000000), k = Wei, p = Wei.mul(0)) => {
+    const data1 = web3.eth.abi.encodeParameters(["bool","uint256","uint256", "uint256"], [premint,mintCap,k, p]);
+    let dtTx1 = await factoryAbi.deployToken(type, name, symbol, admin, treasury, mintRate, burnRate, data1);
+    await dtTx1.wait()
+    const linearAddr = await factoryAbi.getToken(0);
+    console.log("Deploying Token...")
+    console.log(type,linearAddr)
+    console.log()
+}
+
+
+const verifyContract = async (contactAddr: string) => {
+    await hre.run("verify:verify", {
+        address: contactAddr,
+    })
+}
+
+const testMintAndBurn = async (tokenAbi,buyer) => {
+    let mintTx = await tokenAbi.mint(buyer.address,0,{value:Ether.div(10)})
+    await mintTx.wait()
+    let erc20Balance = await tokenAbi.balanceOf(buyer.address)
+    console.log("mint",ethers.utils.formatEther(erc20Balance))
+    let burnTx = await tokenAbi.burn(buyer.address,erc20Balance)
+    await burnTx.wait()
+    console.log("burn",ethers.utils.formatEther(erc20Balance))
 }
 
 main()
-    .then(() => process.exit(0))
-    .catch(error => {
-        console.error(error);
-        process.exit(1);
-    });
+.then(() => process.exit(0))
+.catch(error => {
+    console.error(error);
+    process.exit(1);
+});
