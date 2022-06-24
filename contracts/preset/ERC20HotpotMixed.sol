@@ -57,7 +57,7 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGu
         return totalSupply();
     }
 
-    function mint(address to, uint256 minDaoTokenRecievedAmount) public payable whenNotPaused nonReentrant {
+    function mint(address to, uint256 minDaoTokenRecievedAmount) public payable whenNotPaused nonReentrant returns(uint256) {
         require(to != address(0), "can not mint to address(0)");
         // minDaoTokenRecievedAmount是为了用户购买的时候，处理滑点，防止在极端情况获得远少于期望的代币
         if (premint()) {
@@ -91,6 +91,7 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGu
         _mint(to, daoTokenAmount);
 
         emit LogMint(to, daoTokenAmount, nativeTokenPaidAmount, platformFee, projectFee);
+        return daoTokenAmount;
     }
 
     /**
@@ -119,7 +120,7 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGu
     /**
      * @dev burn实现的是将 daoToken打入bonding curve销毁，bonding curve计算相应的以太坊，再扣除手续费后将eth兑出的功能
      */
-    function burn(address to, uint256 daoTokenPaidAmount) public whenNotPaused nonReentrant {
+    function burn(address to, uint256 daoTokenPaidAmount, uint256 minNativeTokenRecievedAmount) public whenNotPaused nonReentrant returns (uint256){
         require(to != address(0), "can not burn to address(0)");
         // require(msg.value == 0, "Burn: dont need to attach ether");
         address from = _msgSender();
@@ -134,7 +135,8 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGu
         uint256 projectFee = (nativeTokenWithdrawAmount * _projectBurnTax) / MAX_TAX_RATE_DENOMINATOR;
         uint256 platformFee = (nativeTokenWithdrawAmount * _platformBurnTax) / MAX_TAX_RATE_DENOMINATOR;
         uint256 nativeTokenPaybackAmount = nativeTokenWithdrawAmount - projectFee - platformFee;
-
+        require(nativeTokenPaybackAmount>=minNativeTokenRecievedAmount, "Burn: payback amount less than minimal expect recieved");
+        
         _burn(from, daoTokenPaidAmount);
 
         {
@@ -153,6 +155,7 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGu
         }
 
         emit LogBurned(from, daoTokenPaidAmount, nativeTokenPaybackAmount, platformFee, projectFee);
+        return nativeTokenPaybackAmount;
     }
 
     function estimateBurn(uint256 daoTokenAmount)

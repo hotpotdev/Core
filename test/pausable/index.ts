@@ -56,7 +56,7 @@ describe("验证 Pausable 暂停功能", async () => {
             let erc20Balance = await hotpotTokenAbi.balanceOf(buyer.address);
             await expect(hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: Ether.mul(10) }), "暂停后 不能mint").to
                 .reverted;
-            await expect(hotpotTokenAbi.connect(buyer).burn(buyer.address, erc20Balance), "暂停后 不能burn").to.reverted;
+            await expect(hotpotTokenAbi.connect(buyer).burn(buyer.address, erc20Balance,0), "暂停后 不能burn").to.reverted;
             await expect(hotpotTokenAbi.connect(buyer).transfer(buyer.address, erc20Balance), "暂停后 不能transfer").to
                 .reverted;
 
@@ -72,7 +72,7 @@ describe("验证 Pausable 暂停功能", async () => {
                 "取消暂停后 可以铸造"
             ).not.reverted;
 
-            await expect(hotpotTokenAbi.connect(buyer).burn(buyer.address, erc20Balance.div(2)), "取消暂停后 可以销毁").not
+            await expect(hotpotTokenAbi.connect(buyer).burn(buyer.address, erc20Balance.div(2),0), "取消暂停后 可以销毁").not
                 .reverted;
         });
     });

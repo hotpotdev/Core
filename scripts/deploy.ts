@@ -38,7 +38,7 @@ async function main() {
         let mintTx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: Ether.mul(500) })
         await mintTx1.wait()
         let totalErc20Balance = await hotpotTokenAbi.balanceOf(buyer.address)
-        let burnTx2 = await hotpotTokenAbi.connect(buyer).burn(buyer.address, totalErc20Balance.div(2))
+        let burnTx2 = await hotpotTokenAbi.connect(buyer).burn(buyer.address, totalErc20Balance.div(2),0)
         await burnTx2.wait()
 
         let platformBalance = await platform.getBalance()

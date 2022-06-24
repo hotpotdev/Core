@@ -34,7 +34,7 @@ describe("HotpotToken 滑点测试", async () => {
                 let afterEstimate = await hotpotTokenAbi.estimateMint(Ether.mul(buyStep))
                 console.log('[',ethers.utils.formatEther(currentSupply),',',afterEstimate.daoTokenAmount.mul(10000).div(beforeEstimate.daoTokenAmount).toNumber()/10000,'],')
             }
-            for(let i=0; i<1000; i++) {
+            for(let i=0; i<10; i++) {
                 await testOne()
             }
         })

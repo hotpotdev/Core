@@ -35,7 +35,7 @@ describe("验证 Gas Fee 的收取", async () => {
             await network.provider.send("hardhat_setBalance", [treasury.address, "0x0"]);
             let erc20Balance3 = await hotpotTokenAbi.balanceOf(buyer.address);
             let asset4 = await ethers.provider.getBalance(hotpotTokenAbi.address);
-            let burnTx2 = await hotpotTokenAbi.connect(buyer).burn(buyer.address, erc20Balance3);
+            let burnTx2 = await hotpotTokenAbi.connect(buyer).burn(buyer.address, erc20Balance3,0);
             await burnTx2.wait();
             let asset5 = await ethers.provider.getBalance(hotpotTokenAbi.address);
             let balance6 = await treasury.getBalance();
@@ -75,7 +75,7 @@ describe("验证 Gas Fee 的收取", async () => {
             await network.provider.send("hardhat_setBalance", [platform.address, "0x0"]);
             let erc20Balance3 = await hotpotTokenAbi.balanceOf(buyer.address);
             let asset4 = await ethers.provider.getBalance(hotpotTokenAbi.address);
-            let burnTx2 = await hotpotTokenAbi.connect(buyer).burn(buyer.address, erc20Balance3);
+            let burnTx2 = await hotpotTokenAbi.connect(buyer).burn(buyer.address, erc20Balance3,0);
             await burnTx2.wait();
             let asset5 = await ethers.provider.getBalance(hotpotTokenAbi.address);
             let balance6 = await platform.getBalance();
@@ -111,7 +111,7 @@ describe("验证 Gas Fee 的收取", async () => {
             await network.provider.send("hardhat_setBalance", [platform.address, "0x0"]);
             let erc20Balance7 = await hotpotTokenAbi.balanceOf(buyer.address);
             let asset8 = await ethers.provider.getBalance(hotpotTokenAbi.address);
-            let burnTx4 = await hotpotTokenAbi.connect(buyer).burn(buyer.address, erc20Balance7);
+            let burnTx4 = await hotpotTokenAbi.connect(buyer).burn(buyer.address, erc20Balance7,0);
             await burnTx4.wait();
             let asset9 = await ethers.provider.getBalance(hotpotTokenAbi.address);
             let balance10 = await platform.getBalance();
