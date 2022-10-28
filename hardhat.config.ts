@@ -60,7 +60,7 @@ async function initFactory(hre: any, type, mintRate, burnRate, premint,mintCap) 
   hre.mintRate = mintRate
   hre.burnRate = burnRate;
   const data1 = hre.web3.eth.abi.encodeParameters(["bool","uint256","uint256", "uint256"], [premint,mintCap,hre.ethers.BigNumber.from('100'), hre.ethers.BigNumber.from('0')]);
-  const data2 = hre.web3.eth.abi.encodeParameters(["bool","uint256"], [premint,mintCap]);
+    const data2 = hre.web3.eth.abi.encodeParameters(["bool", "uint256", "uint256", "uint256"], [premint,mintCap,14,2e6]);
   await hre.factory.connect(hre.platform).deployToken("Linear", "TLT", "TLT", hre.treasury.address, hre.treasury.address, mintRate, burnRate, data1);
   await hre.factory.connect(hre.platform).deployToken("Exp", "TET", "TET", hre.treasury.address, hre.treasury.address, mintRate, burnRate, data2);
   const linearAddr = await hre.factory.getToken(0);

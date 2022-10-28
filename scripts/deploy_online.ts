@@ -50,7 +50,7 @@ const addTokenImplementToFactory = async (factoryAbi,type,tokenContractType = ex
 }
 
 const deployExpToken = async (factoryAbi:HotpotTokenFactory,type,name,symbol,admin:string,treasury:string,mintRate = 100,burnRate = 100,premint = false,mintCap = Ether.mul(25000000)) => {
-    const data2 = web3.eth.abi.encodeParameters(["bool","uint256"], [premint,mintCap]);
+    const data2 = web3.eth.abi.encodeParameters(["bool", "uint256", "uint256", "uint256"], [premint,mintCap,14,2e6]);
     let dtTx2 = await factoryAbi.deployToken(type, name, symbol, admin, treasury, mintRate, burnRate, data2);
     let tx = await dtTx2.wait()
     const expAddr = tx.events[7].address

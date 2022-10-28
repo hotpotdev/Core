@@ -19,9 +19,11 @@ contract ExpMixedBondingSwap is IBondingCurve {
 
     string public constant BondingCurveType = "exponential";
 
-    constructor() {
-        a = 14;
-        b = 2e6;
+    constructor(uint256 _a, uint256 _b) {
+        // a = 14;
+        // b = 2e6;
+        a = _a;
+        b = _b;
     }
 
     // x => daoTokenAmount, y => nativeTokenAmount
@@ -94,9 +96,9 @@ contract ExpMixedHotpotToken is ERC20HotpotMixed {
         bytes calldata data
     ) public initializer {
         super.initialize(name, symbol, projectAdmin, projectTreasury, projectMintTax, projectBurnTax, _msgSender());
-        (bool hasPreMint, uint256 mintCap) = abi.decode(data, (bool, uint256));
-        require(mintCap <= 25000000e18, "Initialize: mint Cap too large");
-        ExpMixedBondingSwap curve = new ExpMixedBondingSwap();
+        (bool hasPreMint, uint256 mintCap, uint256 a, uint256 b) = abi.decode(data, (bool, uint256, uint256, uint256));
+        require(mintCap <= a * b * 1e18, "Initialize: mint Cap too large");
+        ExpMixedBondingSwap curve = new ExpMixedBondingSwap(a, b);
         _changeCoinMaker(address(curve));
 
         _initPremint(hasPreMint);

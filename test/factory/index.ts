@@ -35,7 +35,7 @@ describe("Factory 功能 Test", async () => {
         await expect(factoryAbi.connect(platform).addImplement("Exp", exp.address), "platform 用户可 addImplement").not
             .reverted;
         // console.log()
-        const data2 = hre.web3.eth.abi.encodeParameters(["bool", "uint256"], [true, Ether]);
+        const data2 = hre.web3.eth.abi.encodeParameters(["bool", "uint256", "uint256", "uint256"], [true, Ether,14,2e6]);
         await expect(
             tokenProxy
                 .connect(anyone)
@@ -111,7 +111,7 @@ describe("Factory 功能 Test", async () => {
         const expModelAbi = ExpMixedHotpotToken__factory.connect(expModel.address,anyone)
         
         let web3 = new Web3(network.provider)
-        const data2 = web3.eth.abi.encodeParameters(["bool","uint256"], [true,Ether.mul(100000)]);
+        const data2 = web3.eth.abi.encodeParameters(["bool","uint256","uint256","uint256"], [true,Ether.mul(100000),14,2e6]);
         
         await expect(expModelAbi["initialize(string,string,address,address,uint256,uint256,bytes)"](
             "Name2",
