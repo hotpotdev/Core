@@ -13,7 +13,7 @@ contract SqrtMixedBondingSwap is IBondingCurve {
     using ABDKMath for uint256;
     uint256 public immutable a;
 
-    string public constant BondingCurveType = "logarithm";
+    string public constant BondingCurveType = "squareroot";
 
     constructor(uint256 _a) {
         a = _a;
