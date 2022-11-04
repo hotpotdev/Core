@@ -3,7 +3,7 @@ import { BigNumber } from "ethers"
 import { formatEther } from "ethers/lib/utils"
 import { ethers, network } from "hardhat"
 import { defines } from "../../hardhat.config"
-import { ExpMixedBondingSwap__factory } from "../../typechain"
+import { SqrtMixedBondingSwap__factory } from "../../typechain"
 
 const Ether = defines.Unit.Ether
 const GWei = defines.Unit.GWei
@@ -12,28 +12,27 @@ const Id = defines.Id
 
 // 验证算子正确性，单次铸造并单次销毁
 describe("验证 Bonding Curve Swap 计算函数 算子测试", async () => {
-    let calculatorContract = "ExpMixedBondingSwap"
-    let a = 14
-    let b = 2e6
-    let supply = Ether.mul(1e7)
+    let calculatorContract = "SqrtMixedBondingSwap"
+    let a = 1
+    let supply = Ether.mul(1e6)
     // let supply = Ether.mul(a).mul(b)
-    let px = Ether.div(1000)
-    let tvl = Ether.mul(2000)
-    describe("Exp Mixed Bonding Swap", async () => {
+    let px = Ether.mul(1000)
+    let tvl = Ether.mul(2e9).div(3)
+    describe("Sqrt Mixed Bonding Swap", async () => {
 
         it("验证 计算方程 的 结果", async () => {
             let signers = await ethers.getSigners()
             let buyer = signers[Id.Buyer]
             const BondingCurve = await ethers.getContractFactory(calculatorContract)
-            const curve = await BondingCurve.deploy(a, b)
+            const curve = await BondingCurve.deploy(a)
             await curve.deployed()
-            const curveAbi = ExpMixedBondingSwap__factory.connect(curve.address,buyer)
+            const curveAbi = SqrtMixedBondingSwap__factory.connect(curve.address,buyer)
 
             let testOne = async (nativeAsset) => {
                 let ans = await curveAbi.calculateMintAmountFromBondingCurve(nativeAsset, 0)
                 let ans2 = await curveAbi.calculateBurnAmountFromBondingCurve(ans.daoTokenAmount, ans.daoTokenAmount)
                 let price = await curveAbi.price(ans.daoTokenAmount)
-                let ans3 = await curveAbi.calculateBurnAmountFromBondingCurve(GWei, ans.daoTokenAmount.add(GWei))
+                let ans3 = await curveAbi.calculateBurnAmountFromBondingCurve(Ether, ans.daoTokenAmount.add(Ether))
                 console.debug(
                     '铸造消耗eth', ethers.utils.formatEther(nativeAsset),
                     '生成erc20', ethers.utils.formatEther(ans.daoTokenAmount),
@@ -41,7 +40,7 @@ describe("验证 Bonding Curve Swap 计算函数 算子测试", async () => {
                     '价格eth/erc20', ethers.utils.formatEther(price),
                     '微分价格', ethers.utils.formatEther(ans3.nativeTokenAmount.mul(Ether).div(ans3[0])),
                     '误差(wei)', nativeAsset.sub(ans2.nativeTokenAmount).toString())
-                expect(ans3.nativeTokenAmount.mul(Ether).div(ans3[0]).sub(price).abs().lt(Ether.div(1000)),'价格公式误差与微元法计算误差应当小于 1 %。').to.true
+                expect(ans3.nativeTokenAmount.mul(Ether).div(ans3[0]).sub(price).abs().lt(price.div(1000)),'价格公式误差与微元法计算误差应当小于 1 %。').to.true
                 expect(ans.daoTokenAmount.sub(supply).abs().lt(ans.daoTokenAmount.div(20)), '特例要求, ' + formatEther(tvl) + ' eth <=> ' + formatEther(supply)+' erc20').to.true
                 expect(price.sub(px).abs().lt(price.div(20)), '特例要求, '+formatEther(tvl) + ' eth <=> ' + formatEther(supply) + ' erc20 时 price ' + formatEther(px)).to.true
             }
@@ -55,9 +54,9 @@ describe("验证 Bonding Curve Swap 计算函数 算子测试", async () => {
             let signers = await ethers.getSigners()
             let buyer = signers[Id.Buyer]
             const BondingCurve = await ethers.getContractFactory(calculatorContract)
-            const curve = await BondingCurve.deploy(a, b)
+            const curve = await BondingCurve.deploy(a)
             await curve.deployed()
-            const curveAbi = ExpMixedBondingSwap__factory.connect(curve.address,buyer)
+            const curveAbi = SqrtMixedBondingSwap__factory.connect(curve.address,buyer)
 
             let testOne = async (nativeAsset) => {
                 let ans = await curveAbi.calculateMintAmountFromBondingCurve(nativeAsset, 0)
@@ -70,7 +69,7 @@ describe("验证 Bonding Curve Swap 计算函数 算子测试", async () => {
                     '价格eth/erc20', ethers.utils.formatEther(price),
                     '误差(wei)', nativeAsset.sub(ans2.nativeTokenAmount).toString())
                 expect(nativeAsset.gt(ans2.nativeTokenAmount), "calculateMintAmountFromBondingCurve消耗的nativeToken需要大于calculateBurnAmountFromBondingCurve生成的nativeToken").to.true
-                expect(nativeAsset.sub(ans2.nativeTokenAmount).lt(1000) || nativeAsset.div(nativeAsset.sub(ans2.nativeTokenAmount)).gt(Ether), "calculateMintAmountFromBondingCurve与calculateBurnAmountFromBondingCurve的误差需要小于1000wei || 误差比例小于1e-18").to.true
+                expect(nativeAsset.sub(ans2.nativeTokenAmount).div(nativeAsset).toNumber() < 0.000000001 , "calculateMintAmountFromBondingCurve与calculateBurnAmountFromBondingCurve的误差比例小于1e-9").to.true
             }
 
             // 测试最小的边界值 1e9 wei ETH
@@ -89,9 +88,9 @@ describe("验证 Bonding Curve Swap 计算函数 算子测试", async () => {
             let signers = await ethers.getSigners()
             let buyer = signers[Id.Buyer]
             const BondingCurve = await ethers.getContractFactory(calculatorContract)
-            const curve = await BondingCurve.deploy(a,b)
+            const curve = await BondingCurve.deploy(a)
             await curve.deployed()
-            const curveAbi = ExpMixedBondingSwap__factory.connect(curve.address,buyer)
+            const curveAbi = SqrtMixedBondingSwap__factory.connect(curve.address,buyer)
 
             let testOne = async (fromErc20Supply, nativeAsset) => {
                 let ans = await curveAbi.calculateMintAmountFromBondingCurve(nativeAsset, fromErc20Supply)
@@ -105,7 +104,7 @@ describe("验证 Bonding Curve Swap 计算函数 算子测试", async () => {
                     '价格eth/erc20', ethers.utils.formatEther(price),
                     '误差', nativeAsset.sub(ans2.nativeTokenAmount).toString())
                 expect(nativeAsset.gt(ans2.nativeTokenAmount), "calculateMintAmountFromBondingCurve消耗的nativeToken需要大于calculateBurnAmountFromBondingCurve生成的").to.true
-                expect(price.gt(Ether.div(10))||ans.daoTokenAmount.lt(Ether.div(10000)) || nativeAsset.sub(ans2.nativeTokenAmount).lt(ethers.BigNumber.from(10000)), "当price小于0.1时，calculateMintAmountFromBondingCurve与calculateBurnAmountFromBondingCurve的误差需要小于10000wei").to.true
+                expect(ans2.nativeTokenAmount.sub(nativeAsset).abs().div(nativeAsset).toNumber() < 0.000000001, "calculateMintAmountFromBondingCurve与calculateBurnAmountFromBondingCurve的误差需要小于1e-9").to.true
             }
 
             // 测试最小的边界值 1 wei
