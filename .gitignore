@@ -3,10 +3,11 @@ node_modules
 .openzeppelin
 coverage
 coverage.json
-typechain
 developing
 abi
+bin
 
 #Hardhat files
 cache
 artifacts
+typechain

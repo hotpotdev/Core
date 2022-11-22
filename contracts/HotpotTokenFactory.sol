@@ -5,21 +5,10 @@ import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./interfaces/IHotpotFactory.sol";
 import "./interfaces/IHotpotToken.sol";
-import "./ExpMixedToken.sol";
-import "./LinearMixedToken.sol";
 import "hardhat/console.sol";
-
-interface IHotpotERC20 is IHotpotToken {
-    function initialize(
-        string memory name,
-        string memory symbol,
-        address projectAdmin,
-        address projectTreasury,
-        uint256 projectMintTax,
-        uint256 projectBurnTax,
-        bytes memory data
-    ) external;
-}
+import "./preset/ERC20HotpotMixed.sol";
+import "./interfaces/IBondingCurve.sol";
+import "./governor/Governor.sol";
 
 contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
     bytes32 public constant PLATFORM_ADMIN_ROLE = keccak256("PLATFORM_ADMIN");
@@ -32,6 +21,7 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
 
     uint256 private tokensLength;
 
+    address private _hotpotImplementAddr;
     address private _platformAdmin;
     address private _platformTreasury;
     ProxyAdmin private _proxyAdmin;
@@ -47,48 +37,57 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
 
     fallback() external payable {}
 
-    function initialize(address platformAdmin, address platformTreasury) public initializer {
+    function initialize(
+        address platformAdmin,
+        address platformTreasury,
+        address hotpotImplementAddr
+    ) public initializer {
         _grantRole(PLATFORM_ADMIN_ROLE, platformAdmin);
         _platformAdmin = platformAdmin;
         _platformTreasury = platformTreasury;
         _platformMintTax = 100;
         _platformBurnTax = 100;
+        _hotpotImplementAddr = hotpotImplementAddr;
         _proxyAdmin = new ProxyAdmin();
     }
 
-    function deployToken(
-        string memory tokenType,
-        string memory name,
-        string memory symbol,
-        address projectAdmin,
-        address projectTreasury,
-        uint256 projectMintTax,
-        uint256 projectBurnTax,
-        bytes calldata data
-    ) public returns (address) {
+    function deployToken(TokenInfo calldata token) public {
         bytes memory call = abi.encodeWithSelector(
-            IHotpotERC20.initialize.selector,
-            name,
-            symbol,
-            projectAdmin,
-            projectTreasury,
-            projectMintTax,
-            projectBurnTax,
-            data
+            ERC20HotpotMixed.initialize.selector,
+            getBondingCurveImplement(token.tokenType),
+            token.name,
+            token.symbol,
+            token.metadata,
+            token.projectAdmin,
+            token.projectTreasury,
+            token.projectMintTax,
+            token.projectBurnTax,
+            token.hasPreMint,
+            token.mintCap,
+            token.isSbt,
+            token.data,
+            address(this)
         );
-        require(_implementsMap[tokenType] != address(0), "Deploy Failed: token type has no implement");
-        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
-            _implementsMap[tokenType],
-            address(_proxyAdmin),
-            call
-        );
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(_hotpotImplementAddr, address(_proxyAdmin), call);
         uint256 tokenId = tokensLength;
         tokens[tokensLength] = address(proxy);
         tokensLength++;
-        tokensType[address(proxy)] = tokenType;
+        tokensType[address(proxy)] = token.tokenType;
+        emit LogTokenDeployed(token.tokenType, tokenId, address(proxy));
+    }
 
-        emit LogTokenDeployed(tokenType, tokenId, address(proxy));
-        return address(proxy);
+    function publishToken(address proxyAddr, GovInfo calldata govInfo) public {
+        Governor gov = new Governor(
+            govInfo.strategyReference,
+            govInfo.strategy,
+            govInfo.votingPeriod,
+            govInfo.votingDelay,
+            govInfo.proposalThreshold,
+            govInfo.quorumVotes,
+            govInfo.timelockDelay
+        );
+        IHotpotToken(proxyAddr).publishToken(address(gov));
+        emit LogTokenPublished(address(proxyAddr), address(gov));
     }
 
     function setPlatformTaxRate(uint256 platformMintTax, uint256 platformBurnTax) public onlyRole(PLATFORM_ADMIN_ROLE) {
@@ -105,15 +104,27 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
         return (_platformMintTax, _platformBurnTax);
     }
 
-    function addImplement(string memory tokenType, address impl) public onlyRole(PLATFORM_ADMIN_ROLE) {
+    function addBondingCurveImplement(address impl) public onlyRole(PLATFORM_ADMIN_ROLE) {
         require(impl != address(0), "invalid implement");
+        string memory tokenType = IBondingCurve(impl).BondingCurveType();
+        require(bytes(tokenType).length != bytes("").length, "bonding curve type error");
+        require(_implementsMap[tokenType] != address(0), "this type already exist");
         _implementsMap[tokenType] = impl;
         emit LogTokenTypeImplAdded(tokenType, impl);
     }
 
-    function getImplement(string memory tokenType) public view returns (address impl) {
+    function getBondingCurveImplement(string calldata tokenType) public view returns (address impl) {
         impl = _implementsMap[tokenType];
         require(impl != address(0), "no such implement");
+    }
+
+    function updateHotpotImplement(address impl) external {
+        _hotpotImplementAddr = impl;
+    }
+
+    function getHotpotImplement() external view returns (address impl) {
+        require(_hotpotImplementAddr != address(0), "no implement");
+        impl = _hotpotImplementAddr;
     }
 
     function getTokensLength() public view returns (uint256 len) {
@@ -148,33 +159,30 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
     }
 
     function declareDoomsday(address proxyAddress) external override onlyRole(PLATFORM_ADMIN_ROLE) {
-        IHotpotERC20(proxyAddress).declareDoomsday();
+        IHotpotToken(proxyAddress).declareDoomsday();
     }
 
     function pause(address proxyAddress) external override onlyRole(PLATFORM_ADMIN_ROLE) {
-        IHotpotERC20(proxyAddress).pause();
+        IHotpotToken(proxyAddress).pause();
     }
 
     function unpause(address proxyAddress) external override onlyRole(PLATFORM_ADMIN_ROLE) {
-        IHotpotERC20(proxyAddress).unpause();
+        IHotpotToken(proxyAddress).unpause();
     }
 
     function requestUpgrade(address proxyAddress, bytes calldata data) external onlyRole(PLATFORM_ADMIN_ROLE) {
-        require(_implementsMap[tokensType[proxyAddress]] != address(0), "Upgrade Failed: Invalid Implement");
-        upgradeTimelock[proxyAddress] = block.timestamp + 2 days;
-        upgradeList[proxyAddress] = abi.encode(_implementsMap[tokensType[proxyAddress]], data);
-        emit LogTokenUpgradeRequested(
-            proxyAddress,
-            upgradeTimelock[proxyAddress],
-            _implementsMap[tokensType[proxyAddress]],
-            msg.sender,
-            data
+        require(
+            _hotpotImplementAddr != _proxyAdmin.getProxyImplementation(TransparentUpgradeableProxy(payable(proxyAddress))),
+            "Upgrade Failed: Same Implement"
         );
+        upgradeTimelock[proxyAddress] = block.timestamp + 2 days;
+        upgradeList[proxyAddress] = abi.encode(_hotpotImplementAddr, data);
+        emit LogTokenUpgradeRequested(proxyAddress, upgradeTimelock[proxyAddress], _hotpotImplementAddr, msg.sender, data);
     }
 
     function rejectUpgrade(address proxyAddress, string calldata reason) external {
-        bytes32 projectAdminRole = IHotpotERC20(proxyAddress).getProjectAdminRole();
-        require(IHotpotERC20(proxyAddress).hasRole(projectAdminRole, msg.sender));
+        bytes32 projectAdminRole = IHotpotToken(proxyAddress).getProjectAdminRole();
+        require(IHotpotToken(proxyAddress).hasRole(projectAdminRole, msg.sender));
         require(upgradeTimelock[proxyAddress] != 0, "project have no upgrade");
         upgradeTimelock[proxyAddress] = 0;
         upgradeList[proxyAddress] = new bytes(0);

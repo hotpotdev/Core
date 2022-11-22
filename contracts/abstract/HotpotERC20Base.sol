@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity >=0.8.13;
 
 // openzeppelin
-import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
 import "./SwapCurve.sol";
 import "./HotpotMetadata.sol";
 import "../interfaces/IHotpotFactory.sol";
 
-abstract contract HotpotERC20Base is ERC20PausableUpgradeable, HotpotMetadata, SwapCurve, AccessControlUpgradeable {
+abstract contract HotpotERC20Base is ERC20VotesUpgradeable, HotpotMetadata, SwapCurve, AccessControlUpgradeable {
+    bool private _paused = true;
     bytes32 public constant FACTORY_ROLE = keccak256("FACTORY_ROLE");
     bytes32 public constant PROJECT_ADMIN_ROLE = keccak256("PROJECT_ADMIN_ROLE");
     bytes32 public constant PREMINT_ROLE = keccak256("PREMINT_ROLE");
@@ -17,10 +18,16 @@ abstract contract HotpotERC20Base is ERC20PausableUpgradeable, HotpotMetadata, S
     address internal _projectTreasury;
     address internal _projectAdmin;
     IHotpotFactory internal _factory;
+    bool internal _isSbt;
 
     uint256 private _maxDaoTokenSupply = 1e36;
     bool private _premint = false;
     bool private _doomsday = false;
+
+    modifier whenNotPaused() {
+        require(!paused(), "Pausable: paused");
+        _;
+    }
 
     function getProjectAdminRole() external pure returns (bytes32 role) {
         return PROJECT_ADMIN_ROLE;
@@ -59,17 +66,21 @@ abstract contract HotpotERC20Base is ERC20PausableUpgradeable, HotpotMetadata, S
         _normalizeMint();
     }
 
+    function paused() public view returns (bool) {
+        return _paused;
+    }
+
     function pause() public onlyRole(FACTORY_ROLE) {
-        _pause();
+        _paused = true;
     }
 
     function unpause() public onlyRole(FACTORY_ROLE) {
-        _unpause();
+        _paused = false;
     }
 
     function declareDoomsday() public onlyRole(FACTORY_ROLE) {
         if (!paused()) {
-            _pause();
+            _paused = true;
         }
         _declareDoomsday();
     }
@@ -80,6 +91,15 @@ abstract contract HotpotERC20Base is ERC20PausableUpgradeable, HotpotMetadata, S
         _revokeRole(PROJECT_ADMIN_ROLE, _projectAdmin);
         _projectAdmin = newProjectAdmin;
         emit LogProjectAdminChanged(newProjectAdmin);
+    }
+
+    function publishToken(address gov) public onlyRole(FACTORY_ROLE) {
+        require(gov != address(0), "Invalid Address");
+        _grantRole(PROJECT_ADMIN_ROLE, gov);
+        _revokeRole(PROJECT_ADMIN_ROLE, _projectAdmin);
+        _projectAdmin = gov;
+        unpause();
+        emit LogProjectAdminChanged(gov);
     }
 
     function setProjectTreasury(address newProjectTreasury) public onlyRole(PROJECT_ADMIN_ROLE) {
@@ -127,6 +147,19 @@ abstract contract HotpotERC20Base is ERC20PausableUpgradeable, HotpotMetadata, S
         require(_doomsday, "Warning: You are not allowed to destroy under normal circumstances");
         emit LogDestroyed(_msgSender());
         selfdestruct(payable(_projectTreasury));
+    }
+
+    function isSbt() public view returns (bool) {
+        return _isSbt;
+    }
+
+    function _transfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal override {
+        require(!isSbt(), "SBT can not transfer");
+        super._transfer(from, to, amount);
     }
 
     event LogStopPremint(address account);

@@ -2,20 +2,41 @@
 pragma solidity ^0.8.0;
 
 interface IHotpotFactory {
-    function deployToken(
-        string memory tokenType,
-        string memory name,
-        string memory symbol,
-        address projectAdmin,
-        address projectTreasury,
-        uint256 projectMintTax,
-        uint256 projectBurnTax,
-        bytes memory data
-    ) external returns (address depoyed);
+    struct TokenInfo {
+        string tokenType;
+        string name;
+        string symbol;
+        string metadata;
+        address projectAdmin;
+        address projectTreasury;
+        uint256 projectMintTax;
+        uint256 projectBurnTax;
+        bool hasPreMint;
+        uint256 mintCap;
+        bool isSbt;
+        bytes data;
+    }
+    struct GovInfo {
+        address strategyReference;
+        address strategy;
+        uint256 votingPeriod;
+        uint256 votingDelay;
+        uint256 proposalThreshold;
+        uint256 quorumVotes;
+        uint256 timelockDelay;
+    }
 
-    function addImplement(string memory tokenType, address impl) external;
+    function deployToken(TokenInfo calldata token) external;
 
-    function getImplement(string memory tokenType) external view returns (address impl);
+    function publishToken(address proxyAddr, GovInfo calldata token) external;
+
+    function addBondingCurveImplement(address impl) external;
+
+    function updateHotpotImplement(address impl) external;
+
+    function getHotpotImplement() external view returns (address impl);
+
+    function getBondingCurveImplement(string calldata tokenType) external view returns (address impl);
 
     function setPlatformTaxRate(uint256 platformMintTax, uint256 platformBurnTax) external;
 
@@ -42,6 +63,7 @@ interface IHotpotFactory {
     function upgradeTokenImplement(address proxyAddress) external payable;
 
     event LogTokenDeployed(string tokenType, uint256 tokenId, address deployedAddr);
+    event LogTokenPublished(address proxyAddr, address govAddr);
 
     event LogTokenUpgradeRequested(
         address proxyAddress,

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity >=0.8.13;
 
 // openzeppelin
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
@@ -9,33 +9,44 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "../abstract/HotpotERC20Base.sol";
 import "../interfaces/IHotpotSwap.sol";
 
-abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGuard {
+contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGuard {
     uint256 internal constant MAX_TAX_RATE_DENOMINATOR = 10000;
-
     uint256 internal _projectMintTax = 0;
     uint256 internal _projectBurnTax = 0;
 
     function initialize(
+        address bondingCurveAddress,
         string memory name,
         string memory symbol,
+        string memory metadata,
         address projectAdmin,
         address projectTreasury,
         uint256 projectMintTax,
         uint256 projectBurnTax,
+        bool hasPreMint,
+        uint256 mintCap,
+        bool isSbt,
+        bytes memory parameters,
         address factory
     ) public initializer {
+        require(mintCap <= 1e30, "Initialize: mint Cap too large");
         __ERC20_init(name, symbol);
+        _initPremint(hasPreMint);
+        _setMintCap(mintCap);
+        _changeCoinMaker(bondingCurveAddress);
         _initProject(projectAdmin, projectTreasury);
         _initFactory(factory);
+        _setMetadata(metadata);
         _projectMintTax = MAX_TAX_RATE_DENOMINATOR;
         _projectBurnTax = MAX_TAX_RATE_DENOMINATOR;
-
+        _isSbt = isSbt;
+        _bondingCurveParameters = parameters;
         _setProjectTaxRate(projectMintTax, projectBurnTax);
 
         _setupRole(FACTORY_ROLE, factory);
 
-        _setupRole(PROJECT_ADMIN_ROLE, _projectAdmin);
-        _setupRole(PREMINT_ROLE, _projectAdmin);
+        _setupRole(PROJECT_ADMIN_ROLE, projectAdmin);
+        _setupRole(PREMINT_ROLE, projectAdmin);
 
         _setRoleAdmin(PREMINT_ROLE, PROJECT_ADMIN_ROLE);
     }
@@ -57,7 +68,7 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGu
         return totalSupply();
     }
 
-    function mint(address to, uint256 minDaoTokenRecievedAmount) public payable whenNotPaused nonReentrant returns(uint256) {
+    function mint(address to, uint256 minDaoTokenRecievedAmount) public payable whenNotPaused nonReentrant returns (uint256) {
         require(to != address(0), "can not mint to address(0)");
         // minDaoTokenRecievedAmount是为了用户购买的时候，处理滑点，防止在极端情况获得远少于期望的代币
         if (premint()) {
@@ -120,7 +131,11 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGu
     /**
      * @dev burn实现的是将 daoToken打入bonding curve销毁，bonding curve计算相应的以太坊，再扣除手续费后将eth兑出的功能
      */
-    function burn(address to, uint256 daoTokenPaidAmount, uint256 minNativeTokenRecievedAmount) public whenNotPaused nonReentrant returns (uint256){
+    function burn(
+        address to,
+        uint256 daoTokenPaidAmount,
+        uint256 minNativeTokenRecievedAmount
+    ) public whenNotPaused nonReentrant returns (uint256) {
         require(to != address(0), "can not burn to address(0)");
         // require(msg.value == 0, "Burn: dont need to attach ether");
         address from = _msgSender();
@@ -135,8 +150,11 @@ abstract contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGu
         uint256 projectFee = (nativeTokenWithdrawAmount * _projectBurnTax) / MAX_TAX_RATE_DENOMINATOR;
         uint256 platformFee = (nativeTokenWithdrawAmount * _platformBurnTax) / MAX_TAX_RATE_DENOMINATOR;
         uint256 nativeTokenPaybackAmount = nativeTokenWithdrawAmount - projectFee - platformFee;
-        require(nativeTokenPaybackAmount>=minNativeTokenRecievedAmount, "Burn: payback amount less than minimal expect recieved");
-        
+        require(
+            nativeTokenPaybackAmount >= minNativeTokenRecievedAmount,
+            "Burn: payback amount less than minimal expect recieved"
+        );
+
         _burn(from, daoTokenPaidAmount);
 
         {
