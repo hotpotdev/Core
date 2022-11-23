@@ -5,7 +5,15 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 pragma solidity >=0.8.4;
 
 abstract contract BaseStrategy is IStrategy {
-    function getThreshold(address, uint256 thresholdParameter) external view virtual override returns (uint256) {
+    function getThreshold(
+        address ref,
+        uint256 thresholdParameter,
+        uint256 blockNumber
+    ) external view virtual override returns (uint256) {
+        require(
+            thresholdParameter > 0 && thresholdParameter < ERC20Votes(ref).getPastTotalSupply(blockNumber),
+            "invalid threshold: must 0 < threshold < totalSupply"
+        );
         return thresholdParameter;
     }
 

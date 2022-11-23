@@ -28,8 +28,6 @@ interface IHotpotToken is IAccessControlUpgradeable {
 
     function cap() external view returns (uint256 cap);
 
-    function premint() external view returns (bool);
-
     function getFactory() external view returns (address);
 
     function getProjectAdmin() external view returns (address);
@@ -39,8 +37,6 @@ interface IHotpotToken is IAccessControlUpgradeable {
     function setProjectAdmin(address newProjectAdmin) external;
 
     function setProjectTreasury(address newProjectTreasury) external;
-
-    function normalizeMint() external;
 
     function price() external view returns (uint256);
 

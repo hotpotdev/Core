@@ -23,15 +23,12 @@ contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGuard {
         address projectTreasury,
         uint256 projectMintTax,
         uint256 projectBurnTax,
-        bool hasPreMint,
         uint256 mintCap,
         bool isSbt,
         bytes memory parameters,
         address factory
     ) public initializer {
-        require(mintCap <= 1e30, "Initialize: mint Cap too large");
         __ERC20_init(name, symbol);
-        _initPremint(hasPreMint);
         _setMintCap(mintCap);
         _changeCoinMaker(bondingCurveAddress);
         _initProject(projectAdmin, projectTreasury);
@@ -46,9 +43,6 @@ contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGuard {
         _setupRole(FACTORY_ROLE, factory);
 
         _setupRole(PROJECT_ADMIN_ROLE, projectAdmin);
-        _setupRole(PREMINT_ROLE, projectAdmin);
-
-        _setRoleAdmin(PREMINT_ROLE, PROJECT_ADMIN_ROLE);
     }
 
     function setProjectTaxRate(uint256 projectMintTax, uint256 projectBurnTax) public onlyRole(PROJECT_ADMIN_ROLE) {
@@ -71,9 +65,6 @@ contract ERC20HotpotMixed is HotpotERC20Base, IHotpotSwap, ReentrancyGuard {
     function mint(address to, uint256 minDaoTokenRecievedAmount) public payable whenNotPaused nonReentrant returns (uint256) {
         require(to != address(0), "can not mint to address(0)");
         // minDaoTokenRecievedAmount是为了用户购买的时候，处理滑点，防止在极端情况获得远少于期望的代币
-        if (premint()) {
-            _checkRole(PREMINT_ROLE, _msgSender());
-        }
         uint256 daoTokenAmount;
         uint256 nativeTokenPaidAmount = msg.value;
 

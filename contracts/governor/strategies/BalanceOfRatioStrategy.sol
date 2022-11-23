@@ -9,7 +9,15 @@ contract BalanceOfRatioStrategy is BalanceOfStrategy {
         return "BalanceOfRatio";
     }
 
-    function getThreshold(address ref, uint256 thresholdParameter) external view override returns (uint256) {
-        return (ERC20Votes(ref).totalSupply() * thresholdParameter) / 10000;
+    function getThreshold(
+        address ref,
+        uint256 thresholdParameter,
+        uint256 blockNumber
+    ) external view override returns (uint256) {
+        require(
+            thresholdParameter > 0 && thresholdParameter < 10000,
+            "the threshold of ratio strategy must greater than 0 or less than 10000"
+        );
+        return (ERC20Votes(ref).getPastTotalSupply(blockNumber) * thresholdParameter) / 10000;
     }
 }

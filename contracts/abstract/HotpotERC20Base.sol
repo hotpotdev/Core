@@ -13,7 +13,6 @@ abstract contract HotpotERC20Base is ERC20VotesUpgradeable, HotpotMetadata, Swap
     bool private _paused = true;
     bytes32 public constant FACTORY_ROLE = keccak256("FACTORY_ROLE");
     bytes32 public constant PROJECT_ADMIN_ROLE = keccak256("PROJECT_ADMIN_ROLE");
-    bytes32 public constant PREMINT_ROLE = keccak256("PREMINT_ROLE");
 
     address internal _projectTreasury;
     address internal _projectAdmin;
@@ -21,7 +20,6 @@ abstract contract HotpotERC20Base is ERC20VotesUpgradeable, HotpotMetadata, Swap
     bool internal _isSbt;
 
     uint256 private _maxDaoTokenSupply = 1e36;
-    bool private _premint = false;
     bool private _doomsday = false;
 
     modifier whenNotPaused() {
@@ -36,10 +34,6 @@ abstract contract HotpotERC20Base is ERC20VotesUpgradeable, HotpotMetadata, Swap
     // 设置daoToken的铸造上限
     function cap() public view returns (uint256) {
         return _maxDaoTokenSupply;
-    }
-
-    function premint() public view returns (bool) {
-        return _premint;
     }
 
     function doomsday() public view returns (bool) {
@@ -60,10 +54,6 @@ abstract contract HotpotERC20Base is ERC20VotesUpgradeable, HotpotMetadata, Swap
 
     function setMetadata(string memory url) public onlyRole(PROJECT_ADMIN_ROLE) {
         _setMetadata(url);
-    }
-
-    function normalizeMint() public onlyRole(PROJECT_ADMIN_ROLE) {
-        _normalizeMint();
     }
 
     function paused() public view returns (bool) {
@@ -117,10 +107,6 @@ abstract contract HotpotERC20Base is ERC20VotesUpgradeable, HotpotMetadata, Swap
         _maxDaoTokenSupply = upperlimit;
     }
 
-    function _initPremint(bool pre) internal {
-        _premint = pre;
-    }
-
     function _initProject(address projectAdmin, address projectTreasury) internal {
         require(projectAdmin != address(0), "Invalid Admin Address");
         require(projectTreasury != address(0), "Invalid Treasury Address");
@@ -131,11 +117,6 @@ abstract contract HotpotERC20Base is ERC20VotesUpgradeable, HotpotMetadata, Swap
     function _initFactory(address account) internal {
         require(account != address(0), "Invalid Treasury Address");
         _factory = IHotpotFactory(account);
-    }
-
-    function _normalizeMint() internal {
-        _premint = false;
-        emit LogStopPremint(_msgSender());
     }
 
     function _declareDoomsday() internal {
@@ -162,7 +143,6 @@ abstract contract HotpotERC20Base is ERC20VotesUpgradeable, HotpotMetadata, Swap
         super._transfer(from, to, amount);
     }
 
-    event LogStopPremint(address account);
     event LogDeclareDoomsday(address account);
     event LogDestroyed(address account);
     event LogProjectAdminChanged(address newAccount);

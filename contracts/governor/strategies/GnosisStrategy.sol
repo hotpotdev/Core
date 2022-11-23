@@ -17,7 +17,11 @@ contract GnosisStrategy is BaseStrategy {
         return "Gnosis";
     }
 
-    function getThreshold(address ref, uint256) external view override returns (uint256) {
+    function getThreshold(
+        address ref,
+        uint256,
+        uint256
+    ) external view override returns (uint256) {
         return IGnosis(ref).getThreshold();
     }
 

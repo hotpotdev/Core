@@ -38,6 +38,10 @@ contract Governor is GovernorBravoDelegateStorageV2, GovernorBravoEvents {
         require(address(timelock) == address(0), "Governor::initialize: can only initialize once");
         require(strategyReference_ != address(0), "Governor::initialize: invalid token address");
         require(strategy_ != address(0), "Governor::initialize: invalid strategy address");
+        require(
+            IStrategy(strategy_).getThreshold(strategyReference_, proposalThreshold_, sub256(block.number, 1)) > 0,
+            "Governor::initialize: invalid threshold"
+        );
 
         timelock = TimelockInterface(address(new Timelock(address(this), timelockDelay)));
         strategy = Strategy({
@@ -85,7 +89,7 @@ contract Governor is GovernorBravoDelegateStorageV2, GovernorBravoEvents {
         // Allow addresses above proposal threshold and whitelisted addresses to propose
         require(
             stg.getPastVotes(strategy.referenceAddr, msg.sender, sub256(block.number, 1)) >
-                stg.getThreshold(strategy.referenceAddr, strategy.proposalThreshold) ||
+                stg.getThreshold(strategy.referenceAddr, strategy.proposalThreshold, sub256(block.number, 1)) ||
                 isWhitelisted(msg.sender),
             "Governor::propose: proposer votes below proposal threshold"
         );
@@ -227,7 +231,11 @@ contract Governor is GovernorBravoDelegateStorageV2, GovernorBravoEvents {
         if (msg.sender != proposal.proposer) {
             IStrategy stg = IStrategy(proposal.strategy.addr);
             uint256 power = stg.getPastVotes(proposal.strategy.referenceAddr, proposal.proposer, sub256(block.number, 1));
-            uint256 threshold = stg.getThreshold(proposal.strategy.referenceAddr, proposal.strategy.proposalThreshold);
+            uint256 threshold = stg.getThreshold(
+                proposal.strategy.referenceAddr,
+                proposal.strategy.proposalThreshold,
+                proposal.startBlock
+            );
             // Whitelisted proposers can't be canceled for falling below proposal threshold
             if (isWhitelisted(proposal.proposer)) {
                 require(power < threshold && msg.sender == whitelistGuardian, "Governor::cancel: whitelisted proposer");
@@ -295,7 +303,8 @@ contract Governor is GovernorBravoDelegateStorageV2, GovernorBravoEvents {
             return ProposalState.Active;
         } else if (
             proposal.forVotes <= proposal.againstVotes ||
-            stg.getThreshold(proposal.strategy.referenceAddr, proposal.strategy.quorumVotes) > proposal.forVotes
+            stg.getThreshold(proposal.strategy.referenceAddr, proposal.strategy.quorumVotes, proposal.startBlock) >
+            proposal.forVotes
         ) {
             return ProposalState.Defeated;
         } else if (proposal.eta == 0) {

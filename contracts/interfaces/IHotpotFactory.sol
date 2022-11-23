@@ -11,7 +11,6 @@ interface IHotpotFactory {
         address projectTreasury;
         uint256 projectMintTax;
         uint256 projectBurnTax;
-        bool hasPreMint;
         uint256 mintCap;
         bool isSbt;
         bytes data;
@@ -28,7 +27,7 @@ interface IHotpotFactory {
 
     function deployToken(TokenInfo calldata token) external;
 
-    function publishToken(address proxyAddr, GovInfo calldata token) external;
+    function publishToken(address proxyAddr, GovInfo calldata token) external payable;
 
     function addBondingCurveImplement(address impl) external;
 

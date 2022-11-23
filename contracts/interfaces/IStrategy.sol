@@ -4,7 +4,11 @@ pragma solidity >=0.8.4;
 interface IStrategy {
     function name() external pure returns (string memory);
 
-    function getThreshold(address ref, uint256 thresholdParameter) external view returns (uint256);
+    function getThreshold(
+        address ref,
+        uint256 thresholdParameter,
+        uint256 blockNumber
+    ) external view returns (uint256);
 
     function getPastVotes(
         address ref,

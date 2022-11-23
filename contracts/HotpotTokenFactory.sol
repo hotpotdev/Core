@@ -62,7 +62,6 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
             token.projectTreasury,
             token.projectMintTax,
             token.projectBurnTax,
-            token.hasPreMint,
             token.mintCap,
             token.isSbt,
             token.data,
@@ -76,7 +75,7 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
         emit LogTokenDeployed(token.tokenType, tokenId, address(proxy));
     }
 
-    function publishToken(address proxyAddr, GovInfo calldata govInfo) public {
+    function publishToken(address proxyAddr, GovInfo calldata govInfo) public payable {
         Governor gov = new Governor(
             govInfo.strategyReference,
             govInfo.strategy,
@@ -87,6 +86,8 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
             govInfo.timelockDelay
         );
         IHotpotToken(proxyAddr).publishToken(address(gov));
+        (uint256 minReceive, , , ) = IHotpotToken(proxyAddr).estimateMint(msg.value);
+        IHotpotToken(proxyAddr).mint{value: msg.value}(msg.sender, minReceive);
         emit LogTokenPublished(address(proxyAddr), address(gov));
     }
 
