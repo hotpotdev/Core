@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./interfaces/IHotpotFactory.sol";
 import "./interfaces/IHotpotToken.sol";
 import "hardhat/console.sol";
-import "./preset/ERC20HotpotMixed.sol";
+import "./preset/HotpotERC20Mixed.sol";
 import "./interfaces/IBondingCurve.sol";
 import "./governor/Governor.sol";
 
@@ -53,7 +53,7 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
 
     function deployToken(TokenInfo calldata token) public {
         bytes memory call = abi.encodeWithSelector(
-            ERC20HotpotMixed.initialize.selector,
+            HotpotERC20Mixed.initialize.selector,
             getBondingCurveImplement(token.tokenType),
             token.name,
             token.symbol,

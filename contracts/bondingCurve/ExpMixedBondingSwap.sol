@@ -10,7 +10,6 @@ import "../libraries/ABDKMath64x64.sol";
 
 // diy
 import "../interfaces/IBondingCurve.sol";
-import "../preset/ERC20HotpotMixed.sol";
 
 contract ExpMixedBondingSwap is IBondingCurve {
     using ABDKMath64x64 for int128;

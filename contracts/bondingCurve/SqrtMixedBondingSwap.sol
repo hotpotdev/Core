@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 // diy
 import "../interfaces/IBondingCurve.sol";
-import "../preset/ERC20HotpotMixed.sol";
 import "../libraries/ABDKMath.sol";
 
 contract SqrtMixedBondingSwap is IBondingCurve {
