@@ -5,7 +5,6 @@
   "main": "index.js",
   "scripts": {
     "test": "hardhat test --grep '验证'",
-    "remix": "remixd -s ./ ./node_modules/@openzeppelin --remix-ide http://remix.app.hubwiz.com/",
     "solc-abi": "solcjs --abi --include-path node_modules/ --base-path . contracts\\HotpotTokenFactory.sol -o ./abi/"
   },
   "keywords": [],

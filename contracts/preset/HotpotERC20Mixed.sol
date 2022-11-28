@@ -11,6 +11,7 @@ import "../interfaces/IHotpotSwap.sol";
 
 contract HotpotERC20Mixed is HotpotERC20Base, IHotpotSwap, ReentrancyGuard {
     uint256 internal constant MAX_TAX_RATE_DENOMINATOR = 10000;
+    uint256 internal constant MAX_PROJECT_TAX_RATE = 2000;
     uint256 internal _projectMintTax = 0;
     uint256 internal _projectBurnTax = 0;
 
@@ -34,8 +35,6 @@ contract HotpotERC20Mixed is HotpotERC20Base, IHotpotSwap, ReentrancyGuard {
         _initProject(projectAdmin, projectTreasury);
         _initFactory(factory);
         _setMetadata(metadata);
-        _projectMintTax = MAX_TAX_RATE_DENOMINATOR;
-        _projectBurnTax = MAX_TAX_RATE_DENOMINATOR;
         _isSbt = isSbt;
         _bondingCurveParameters = parameters;
         _setProjectTaxRate(projectMintTax, projectBurnTax);
@@ -99,16 +98,9 @@ contract HotpotERC20Mixed is HotpotERC20Base, IHotpotSwap, ReentrancyGuard {
     /**
      * @dev 前端估算mint的铸造
      */
-    function estimateMint(uint256 nativeTokenPaidAmount)
-        public
-        view
-        returns (
-            uint256 daoTokenAmount,
-            uint256,
-            uint256 platformFee,
-            uint256 projectFee
-        )
-    {
+    function estimateMint(
+        uint256 nativeTokenPaidAmount
+    ) public view returns (uint256 daoTokenAmount, uint256, uint256 platformFee, uint256 projectFee) {
         (uint256 _platformMintTax, ) = _factory.getTaxRateOfPlatform();
         projectFee = (nativeTokenPaidAmount * _projectMintTax) / MAX_TAX_RATE_DENOMINATOR;
         platformFee = (nativeTokenPaidAmount * _platformMintTax) / MAX_TAX_RATE_DENOMINATOR;
@@ -167,16 +159,9 @@ contract HotpotERC20Mixed is HotpotERC20Base, IHotpotSwap, ReentrancyGuard {
         return nativeTokenPaybackAmount;
     }
 
-    function estimateBurn(uint256 daoTokenAmount)
-        public
-        view
-        returns (
-            uint256,
-            uint256 nativeTokenAmount,
-            uint256 platformFee,
-            uint256 projectFee
-        )
-    {
+    function estimateBurn(
+        uint256 daoTokenAmount
+    ) public view returns (uint256, uint256 nativeTokenAmount, uint256 platformFee, uint256 projectFee) {
         (, uint256 _platformBurnTax) = _factory.getTaxRateOfPlatform();
         (, nativeTokenAmount) = _calculateBurnAmountFromBondingCurve(daoTokenAmount, _getCurrentSupply());
 
@@ -198,8 +183,14 @@ contract HotpotERC20Mixed is HotpotERC20Base, IHotpotSwap, ReentrancyGuard {
     }
 
     function _setProjectTaxRate(uint256 projectMintTax, uint256 projectBurnTax) internal {
-        require(_projectMintTax >= projectMintTax, "SetTax:Project Mint Tax Rate must lower than before");
-        require(_projectBurnTax >= projectBurnTax, "SetTax:Project Burn Tax Rate must lower than before");
+        require(
+            (MAX_PROJECT_TAX_RATE <= projectMintTax && projectMintTax >= 0),
+            "SetTax:Project Mint Tax Rate must lower than before or between 0% to 1%"
+        );
+        require(
+            (MAX_PROJECT_TAX_RATE <= projectBurnTax && projectBurnTax >= 0),
+            "SetTax:Project Burn Tax Rate must lower than before or between 0% to 1%"
+        );
         _projectMintTax = projectMintTax;
         _projectBurnTax = projectBurnTax;
         (uint256 _platformMintTax, uint256 _platformBurnTax) = _factory.getTaxRateOfPlatform();

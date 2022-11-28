@@ -18,19 +18,17 @@ abstract contract SwapCurve {
         emit LogCoinMakerChanged(address(_coinMaker), newBonding);
     }
 
-    function _calculateMintAmountFromBondingCurve(uint256 tokens, uint256 totalSupply)
-        internal
-        view
-        returns (uint256, uint256)
-    {
+    function _calculateMintAmountFromBondingCurve(
+        uint256 tokens,
+        uint256 totalSupply
+    ) internal view returns (uint256, uint256) {
         return _coinMaker.calculateMintAmountFromBondingCurve(tokens, totalSupply, _bondingCurveParameters);
     }
 
-    function _calculateBurnAmountFromBondingCurve(uint256 tokens, uint256 totalSupply)
-        internal
-        view
-        returns (uint256, uint256)
-    {
+    function _calculateBurnAmountFromBondingCurve(
+        uint256 tokens,
+        uint256 totalSupply
+    ) internal view returns (uint256, uint256) {
         return _coinMaker.calculateBurnAmountFromBondingCurve(tokens, totalSupply, _bondingCurveParameters);
     }
 
@@ -40,5 +38,9 @@ abstract contract SwapCurve {
 
     function getBondingCurve() public view returns (address) {
         return address(_coinMaker);
+    }
+
+    function getParameters() public view returns (bytes memory) {
+        return _bondingCurveParameters;
     }
 }

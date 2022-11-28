@@ -10,7 +10,7 @@ import "./HotpotMetadata.sol";
 import "../interfaces/IHotpotFactory.sol";
 
 abstract contract HotpotERC20Base is ERC20VotesUpgradeable, HotpotMetadata, SwapCurve, AccessControlUpgradeable {
-    bool private _paused = true;
+    bool private _paused = false;
     bytes32 public constant FACTORY_ROLE = keccak256("FACTORY_ROLE");
     bytes32 public constant PROJECT_ADMIN_ROLE = keccak256("PROJECT_ADMIN_ROLE");
 
@@ -62,10 +62,12 @@ abstract contract HotpotERC20Base is ERC20VotesUpgradeable, HotpotMetadata, Swap
 
     function pause() public onlyRole(FACTORY_ROLE) {
         _paused = true;
+        emit Paused(_msgSender());
     }
 
     function unpause() public onlyRole(FACTORY_ROLE) {
         _paused = false;
+        emit Unpaused(_msgSender());
     }
 
     function declareDoomsday() public onlyRole(FACTORY_ROLE) {
@@ -88,7 +90,9 @@ abstract contract HotpotERC20Base is ERC20VotesUpgradeable, HotpotMetadata, Swap
         _grantRole(PROJECT_ADMIN_ROLE, gov);
         _revokeRole(PROJECT_ADMIN_ROLE, _projectAdmin);
         _projectAdmin = gov;
-        unpause();
+        if (!paused()) {
+            unpause();
+        }
         emit LogProjectAdminChanged(gov);
     }
 
@@ -134,11 +138,7 @@ abstract contract HotpotERC20Base is ERC20VotesUpgradeable, HotpotMetadata, Swap
         return _isSbt;
     }
 
-    function _transfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal override {
+    function _transfer(address from, address to, uint256 amount) internal override {
         require(!isSbt(), "SBT can not transfer");
         super._transfer(from, to, amount);
     }
@@ -147,6 +147,8 @@ abstract contract HotpotERC20Base is ERC20VotesUpgradeable, HotpotMetadata, Swap
     event LogDestroyed(address account);
     event LogProjectAdminChanged(address newAccount);
     event LogProjectTreasuryChanged(address newAccount);
+    event Paused(address account);
+    event Unpaused(address account);
 
     fallback() external {}
 }

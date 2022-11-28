@@ -8,12 +8,4 @@ contract BalanceOfStrategy is BaseStrategy {
     function name() external pure virtual returns (string memory) {
         return "BalanceOf";
     }
-
-    function getPastVotes(
-        address ref,
-        address account,
-        uint256 blockNumber
-    ) external view override returns (uint256) {
-        return ERC20Votes(ref).getPastVotes(account, blockNumber);
-    }
 }
