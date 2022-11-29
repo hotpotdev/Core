@@ -65,12 +65,12 @@ describe("验证 Gas Fee 的收取", async () => {
             let balance2 = await platform.getBalance();
             console.log(
                 "mintRate (",
-                hre.mintRate,
+                80,
                 "/ 10000 ) mint 消耗 eth 1",
                 "platform 获得 eth",
                 ethers.utils.formatEther(balance2)
             );
-            expect(Ether.mul(100).div(10000).eq(balance2), "平台 mint 手续费计算错误").to.true;
+            expect(Ether.mul(80).div(10000).eq(balance2), "平台 mint 手续费计算错误").to.true;
             // burn
             await network.provider.send("hardhat_setBalance", [platform.address, "0x0"]);
             let erc20Balance3 = await hotpotTokenAbi.balanceOf(buyer.address);
@@ -81,13 +81,13 @@ describe("验证 Gas Fee 的收取", async () => {
             let balance6 = await platform.getBalance();
             console.log(
                 "burnRate (",
-                hre.burnRate,
+                80,
                 "/ 10000 ) 合约 burn 消耗eth",
                 ethers.utils.formatEther(asset4.sub(asset5)),
                 "platform 获得 eth",
                 ethers.utils.formatEther(balance6)
             );
-            expect(asset4.sub(asset5).mul(100).div(10000).eq(balance6), "平台 burn 手续费计算错误").to.true;
+            expect(asset4.sub(asset5).mul(80).div(10000).eq(balance6), "平台 burn 手续费计算错误").to.true;
 
             const factoryAbi = await HotpotTokenFactory__factory.connect(hre.factory.address, platform);
             let mintRate = 10,

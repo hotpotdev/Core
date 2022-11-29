@@ -28,8 +28,8 @@ describe("验证 Mint Cap 铸造限制", async () => {
             ).not.reverted;
             await expect(
                 hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: price.mul(100000) }),
-                "铸造量大于 mintCap 时需要铸造失败"
-            ).to.reverted;
+                "铸造量大于 mintCap 时不会铸造失败"
+            ).not.reverted;
         });
     });
 });

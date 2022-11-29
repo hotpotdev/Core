@@ -65,7 +65,7 @@ describe("验证 Bonding Curve Swap 计算函数 算子测试", async () => {
             let signers = await ethers.getSigners();
             let buyer = signers[Id.Buyer];
             const BondingCurve = await ethers.getContractFactory(calculatorContract);
-            const curve = await BondingCurve.deploy(1, Ether);
+            const curve = await BondingCurve.deploy();
             await curve.deployed();
             const curveAbi = LinearMixedBondingSwap__factory.connect(curve.address, buyer);
 
@@ -111,17 +111,18 @@ describe("验证 Bonding Curve Swap 计算函数 算子测试", async () => {
             let signers = await ethers.getSigners();
             let buyer = signers[Id.Buyer];
             const BondingCurve = await ethers.getContractFactory(calculatorContract);
-            const curve = await BondingCurve.deploy(1, Ether);
+            const curve = await BondingCurve.deploy();
             await curve.deployed();
             const curveAbi = curve;
 
             let testOne = async (fromErc20Supply, nativeAsset) => {
-                let ans = await curveAbi.calculateMintAmountFromBondingCurve(nativeAsset, fromErc20Supply);
+                let ans = await curveAbi.calculateMintAmountFromBondingCurve(nativeAsset, fromErc20Supply, data);
                 let ans2 = await curveAbi.calculateBurnAmountFromBondingCurve(
                     ans.daoTokenAmount,
-                    fromErc20Supply.add(ans.daoTokenAmount)
+                    fromErc20Supply.add(ans.daoTokenAmount),
+                    data
                 );
-                let price = await curveAbi.price(fromErc20Supply);
+                let price = await curveAbi.price(fromErc20Supply, data);
                 console.debug(
                     "erc20Supply",
                     ethers.utils.formatEther(fromErc20Supply),
@@ -160,7 +161,7 @@ describe("验证 Bonding Curve Swap 计算函数 算子测试", async () => {
             let signers = await ethers.getSigners();
             let buyer = signers[Id.Buyer];
             const BondingCurve = await ethers.getContractFactory(calculatorContract);
-            const curve = await BondingCurve.deploy(1, Ether);
+            const curve = await BondingCurve.deploy();
             await curve.deployed();
             const curveAbi = LinearMixedBondingSwap__factory.connect(curve.address, buyer);
 
