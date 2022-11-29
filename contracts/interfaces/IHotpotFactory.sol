@@ -25,9 +25,9 @@ interface IHotpotFactory {
         uint256 timelockDelay;
     }
 
-    function deployToken(TokenInfo calldata token) external;
+    function deployToken(TokenInfo calldata token) external payable;
 
-    function publishToken(address proxyAddr, GovInfo calldata token) external payable;
+    function createGovernorForToken(address proxyAddr, GovInfo calldata token) external;
 
     function addBondingCurveImplement(address impl) external;
 
@@ -62,7 +62,7 @@ interface IHotpotFactory {
     function upgradeTokenImplement(address proxyAddress) external payable;
 
     event LogTokenDeployed(string tokenType, uint256 tokenId, address deployedAddr);
-    event LogTokenPublished(address proxyAddr, address govAddr);
+    event LogGovernorCreated(address proxyAddr, address govAddr);
 
     event LogTokenUpgradeRequested(
         address proxyAddress,

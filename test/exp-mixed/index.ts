@@ -1,30 +1,26 @@
-import { expect } from "chai"
-import { ethers, network } from "hardhat"
+import { expect } from "chai";
+import { ethers, network } from "hardhat";
 import { defines } from "../../hardhat.config";
-import { ExpMixedBondingSwap__factory, ExpMixedHotpotToken__factory } from "../../typechain";
+import { ExpMixedBondingSwap__factory, HotpotERC20Mixed__factory } from "../../typechain";
 
 const hre = require("hardhat");
-const Ether = defines.Unit.Ether
-const Wei = defines.Unit.Wei
-const Id = defines.Id
-
+const Ether = defines.Unit.Ether;
+const Wei = defines.Unit.Wei;
+const Id = defines.Id;
 
 // 验证算子正确性，单次铸造并单次销毁
 describe("指数 Mixed", async () => {
     describe("单例测试测试", async () => {
-        
         // it("样例 mint 与 burn 方法 买卖正确性验证", async () => {
         //     let signers = await ethers.getSigners()
         //     let buyer = signers[Id.Buyer]
         //     let treasury = signers[Id.Treasury]
         //     let platform = signers[Id.Platform]
         //     const token = await hre.expToken(900,900)
-        //     const hotpotTokenAbi = await ExpMixedHotpotToken__factory.connect(token.address,buyer)
-            
+        //     const hotpotTokenAbi = await HotpotERC20Mixed__factory.connect(token.address,buyer)
         //     await network.provider.send("hardhat_setBalance", [treasury.address, '0x0'])
         //     await network.provider.send("hardhat_setBalance", [platform.address, '0x0'])
         //     await network.provider.send("hardhat_setBalance", [buyer.address, Ether.mul(100000000)._hex.replace(/0x0+/, '0x')])
-
         //     let testOne = async () => {
         //         let platformBalance = await platform.getBalance()
         //         let treasuryBalance = await treasury.getBalance()
@@ -47,7 +43,6 @@ describe("指数 Mixed", async () => {
         //     // await testOne()
         //     // let mintTx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: Ether.mul(2223) })
         //     // await mintTx1.wait()
-            
         //     // await testOne()
         //     // let erc20Balance = await hotpotTokenAbi.balanceOf(buyer.address)
         //     // let mintTx2 = await hotpotTokenAbi.connect(buyer).burn(buyer.address, erc20Balance)
@@ -57,5 +52,5 @@ describe("指数 Mixed", async () => {
         //     // console.log(await tet.BondingCurveType())
         //     // expect(contractAsset.sub(estimateBurn.nativeTokenAmount.add(estimateBurn.platformFee.add(estimateBurn.projectFee))),'误差损失当线性增长').to.lt(Wei.mul(1000*(round+2)))
         // })
-    })
-})
+    });
+});

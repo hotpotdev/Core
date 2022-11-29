@@ -75,7 +75,7 @@ contract HotpotERC20Mixed is HotpotERC20Base, IHotpotSwap, ReentrancyGuard {
         // Calculate the actual amount through Bonding Curve
         (daoTokenAmount, ) = _calculateMintAmountFromBondingCurve(nativeTokenPaidToBondingCurveAmount, _getCurrentSupply());
         require(daoTokenAmount > 1e9 && nativeTokenPaidToBondingCurveAmount > 1e9, "Mint: token amount is too low");
-        require(_getCurrentSupply() + daoTokenAmount <= cap(), "Mint: exceed dao token max supply");
+        // require(_getCurrentSupply() + daoTokenAmount <= cap(), "Mint: exceed dao token max supply");//disable mintCap temporarily
         // 用户/前端会要求最少获得多少daoToken，交易繁忙时如果实际可获得的少于期望的daoToken数量，则revert
         require(daoTokenAmount >= minDaoTokenRecievedAmount, "Mint: mint amount less than minimal expect recieved");
 
@@ -184,12 +184,12 @@ contract HotpotERC20Mixed is HotpotERC20Base, IHotpotSwap, ReentrancyGuard {
 
     function _setProjectTaxRate(uint256 projectMintTax, uint256 projectBurnTax) internal {
         require(
-            (MAX_PROJECT_TAX_RATE <= projectMintTax && projectMintTax >= 0),
-            "SetTax:Project Mint Tax Rate must lower than before or between 0% to 1%"
+            (MAX_PROJECT_TAX_RATE >= projectMintTax && projectMintTax >= 0),
+            "SetTax:Project Mint Tax Rate must lower than before or between 0% to 20%"
         );
         require(
-            (MAX_PROJECT_TAX_RATE <= projectBurnTax && projectBurnTax >= 0),
-            "SetTax:Project Burn Tax Rate must lower than before or between 0% to 1%"
+            (MAX_PROJECT_TAX_RATE >= projectBurnTax && projectBurnTax >= 0),
+            "SetTax:Project Burn Tax Rate must lower than before or between 0% to 20%"
         );
         _projectMintTax = projectMintTax;
         _projectBurnTax = projectBurnTax;

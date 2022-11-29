@@ -48,7 +48,6 @@
   "dependencies": {
     "@openzeppelin/contracts": "^4.8.0",
     "@openzeppelin/contracts-upgradeable": "^4.8.0",
-    "mocha": "^10.1.0",
-    "web3": "^1.8.1"
+    "mocha": "^10.1.0"
   }
 }

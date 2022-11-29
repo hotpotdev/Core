@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol
  * @dev Interface of the hotpot swap
  */
 interface IHotpotToken is IAccessControlUpgradeable {
-    function publishToken(address gov) external;
+    function setGov(address gov) external;
 
     function getProjectAdminRole() external pure returns (bytes32 role);
 
@@ -42,15 +42,9 @@ interface IHotpotToken is IAccessControlUpgradeable {
 
     function mint(address to, uint256 minDaoTokenRecievedAmount) external payable returns (uint256);
 
-    function estimateMint(uint256 nativeTokenPaidAmount)
-        external
-        view
-        returns (
-            uint256 daoTokenAmount,
-            uint256,
-            uint256 platformFee,
-            uint256 projectFee
-        );
+    function estimateMint(
+        uint256 nativeTokenPaidAmount
+    ) external view returns (uint256 daoTokenAmount, uint256, uint256 platformFee, uint256 projectFee);
 
     function burn(
         address to,
@@ -58,15 +52,9 @@ interface IHotpotToken is IAccessControlUpgradeable {
         uint256 minNativeTokenRecievedAmount
     ) external payable returns (uint256);
 
-    function estimateBurn(uint256 daoTokenAmount)
-        external
-        view
-        returns (
-            uint256,
-            uint256 nativeTokenAmount,
-            uint256 platformFee,
-            uint256 projectFee
-        );
+    function estimateBurn(
+        uint256 daoTokenAmount
+    ) external view returns (uint256, uint256 nativeTokenAmount, uint256 platformFee, uint256 projectFee);
 
     function pause() external;
 

@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
 import { defines } from "../../hardhat.config";
-import { ExpMixedHotpotToken__factory, HotpotTokenFactory__factory } from "../../typechain";
+import { HotpotERC20Mixed__factory, HotpotTokenFactory__factory } from "../../typechain";
 
 const hre = require("hardhat");
 const Ether = defines.Unit.Ether;
@@ -23,7 +23,7 @@ describe("验证 Factory 权限", async () => {
             await network.provider.send("hardhat_setBalance", [treasury.address, Ether._hex.replace(/0x0+/, "0x")]);
             await network.provider.send("hardhat_setBalance", [platform.address, Ether._hex.replace(/0x0+/, "0x")]);
             const token = await hre.expToken(500, 1000);
-            const hotpotTokenAbi = await ExpMixedHotpotToken__factory.connect(token.address, buyer);
+            const hotpotTokenAbi = await HotpotERC20Mixed__factory.connect(token.address, buyer);
 
             expect(
                 await hotpotTokenAbi.hasRole(await hotpotTokenAbi.FACTORY_ROLE(), hre.factory.address),
@@ -52,10 +52,6 @@ describe("验证 Factory 权限", async () => {
                 "Treaury 拥有 Project Manager权限"
             ).to.true;
             expect(
-                await hotpotTokenAbi.hasRole(await hotpotTokenAbi.PREMINT_ROLE(), treasury.address),
-                "Treaury 拥有 Premint 权限"
-            ).to.true;
-            expect(
                 await hotpotTokenAbi.hasRole(await hotpotTokenAbi.FACTORY_ROLE(), treasury.address),
                 "Treaury 不拥有 Factory 权限"
             ).to.false;
@@ -68,23 +64,6 @@ describe("验证 Factory 权限", async () => {
                 hotpotTokenAbi.connect(treasury).grantRole(await hotpotTokenAbi.PROJECT_ADMIN_ROLE(), premintRole.address),
                 "ProjectAdmin 权限 不可被授权"
             ).to.reverted;
-            await expect(
-                hotpotTokenAbi.connect(treasury).grantRole(await hotpotTokenAbi.PREMINT_ROLE(), premintRole.address),
-                "Premint 权限 可被 TreasuryAdmin 授权"
-            ).not.reverted;
-            expect(
-                await hotpotTokenAbi.hasRole(await hotpotTokenAbi.PREMINT_ROLE(), premintRole.address),
-                "授权 后拥有了 Premint 权限"
-            ).to.true;
-
-            await expect(
-                hotpotTokenAbi.connect(platform).revokeRole(await hotpotTokenAbi.PREMINT_ROLE(), premintRole.address),
-                "Premint 权限 不可被 非Treasury 撤销"
-            ).to.reverted;
-            await expect(
-                hotpotTokenAbi.connect(treasury).revokeRole(await hotpotTokenAbi.PREMINT_ROLE(), premintRole.address),
-                "Premint 权限 可被 Treasury 撤销"
-            ).not.reverted;
 
             await expect(
                 hotpotTokenAbi.connect(platform).setProjectTreasury(buyer.address),
@@ -120,7 +99,7 @@ describe("验证 Factory 权限", async () => {
             await network.provider.send("hardhat_setBalance", [treasury.address, Ether._hex.replace(/0x0+/, "0x")]);
             await network.provider.send("hardhat_setBalance", [platform.address, Ether._hex.replace(/0x0+/, "0x")]);
             const token = await hre.expToken(500, 1000);
-            const hotpotTokenAbi = await ExpMixedHotpotToken__factory.connect(token.address, buyer);
+            const hotpotTokenAbi = await HotpotERC20Mixed__factory.connect(token.address, buyer);
             const factoryAbi = await HotpotTokenFactory__factory.connect(hre.factory.address, platform);
 
             expect(

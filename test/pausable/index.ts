@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
 import { defines } from "../../hardhat.config";
-import { ExpMixedHotpotToken__factory, HotpotTokenFactory__factory } from "../../typechain";
+import { HotpotERC20Mixed__factory, HotpotTokenFactory__factory } from "../../typechain";
 
 const hre = require("hardhat");
 const Ether = defines.Unit.Ether;
@@ -22,7 +22,7 @@ describe("验证 Pausable 暂停功能", async () => {
             await network.provider.send("hardhat_setBalance", [treasury.address, Ether._hex.replace(/0x0+/, "0x")]);
             await network.provider.send("hardhat_setBalance", [platform.address, Ether._hex.replace(/0x0+/, "0x")]);
             const token = await hre.expToken(500, 1000);
-            const hotpotTokenAbi = await ExpMixedHotpotToken__factory.connect(token.address, buyer);
+            const hotpotTokenAbi = await HotpotERC20Mixed__factory.connect(token.address, buyer);
             const factoryAbi = await HotpotTokenFactory__factory.connect(hre.factory.address, platform);
 
             let tx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: Ether.mul(10) });
@@ -56,7 +56,7 @@ describe("验证 Pausable 暂停功能", async () => {
             let erc20Balance = await hotpotTokenAbi.balanceOf(buyer.address);
             await expect(hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: Ether.mul(10) }), "暂停后 不能mint").to
                 .reverted;
-            await expect(hotpotTokenAbi.connect(buyer).burn(buyer.address, erc20Balance,0), "暂停后 不能burn").to.reverted;
+            await expect(hotpotTokenAbi.connect(buyer).burn(buyer.address, erc20Balance, 0), "暂停后 不能burn").to.reverted;
             await expect(hotpotTokenAbi.connect(buyer).transfer(buyer.address, erc20Balance), "暂停后 不能transfer").to
                 .reverted;
 
@@ -72,7 +72,7 @@ describe("验证 Pausable 暂停功能", async () => {
                 "取消暂停后 可以铸造"
             ).not.reverted;
 
-            await expect(hotpotTokenAbi.connect(buyer).burn(buyer.address, erc20Balance.div(2),0), "取消暂停后 可以销毁").not
+            await expect(hotpotTokenAbi.connect(buyer).burn(buyer.address, erc20Balance.div(2), 0), "取消暂停后 可以销毁").not
                 .reverted;
         });
     });

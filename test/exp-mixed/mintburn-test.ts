@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
 import { defines } from "../../hardhat.config";
-import { ExpMixedHotpotToken__factory } from "../../typechain";
+import { HotpotERC20Mixed__factory } from "../../typechain";
 
 const hre = require("hardhat");
 const Ether = defines.Unit.Ether;
@@ -19,7 +19,7 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
             let platform = signers[Id.Platform];
 
             const token = await hre.expToken();
-            const hotpotTokenAbi = await ExpMixedHotpotToken__factory.connect(token.address, buyer);
+            const hotpotTokenAbi = await HotpotERC20Mixed__factory.connect(token.address, buyer);
 
             await network.provider.send("hardhat_setBalance", [treasury.address, "0x0"]);
             await network.provider.send("hardhat_setBalance", [platform.address, "0x0"]);
@@ -44,18 +44,14 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
                     }),
                 "大于最小铸造期望时 铸造成功"
             ).not.reverted;
-            let erc20Balance = await hotpotTokenAbi.balanceOf(buyer.address)
-            let estimiteBurn = await hotpotTokenAbi.estimateBurn(erc20Balance)
+            let erc20Balance = await hotpotTokenAbi.balanceOf(buyer.address);
+            let estimiteBurn = await hotpotTokenAbi.estimateBurn(erc20Balance);
             await expect(
-                hotpotTokenAbi
-                    .connect(buyer)
-                    .burn(buyer.address, erc20Balance, estimiteBurn.nativeTokenAmount.add(1)),
+                hotpotTokenAbi.connect(buyer).burn(buyer.address, erc20Balance, estimiteBurn.nativeTokenAmount.add(1)),
                 "小于最小销毁期望payback时 销毁失败"
             ).to.reverted;
             await expect(
-                hotpotTokenAbi
-                    .connect(buyer)
-                    .burn(buyer.address, erc20Balance, estimiteBurn.nativeTokenAmount),
+                hotpotTokenAbi.connect(buyer).burn(buyer.address, erc20Balance, estimiteBurn.nativeTokenAmount),
                 "大于最小销毁期望payback时 销毁成功"
             ).not.reverted;
         });
@@ -66,7 +62,7 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
             let treasury = signers[Id.Treasury];
             let platform = signers[Id.Platform];
             const token = await hre.expToken();
-            const hotpotTokenAbi = await ExpMixedHotpotToken__factory.connect(token.address, buyer);
+            const hotpotTokenAbi = await HotpotERC20Mixed__factory.connect(token.address, buyer);
 
             await network.provider.send("hardhat_setBalance", [treasury.address, "0x0"]);
             await network.provider.send("hardhat_setBalance", [platform.address, "0x0"]);
@@ -124,7 +120,7 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
             let treasury = signers[Id.Treasury];
             let platform = signers[Id.Platform];
             const token = await hre.linearToken(100, 100);
-            const hotpotTokenAbi = await ExpMixedHotpotToken__factory.connect(token.address, buyer);
+            const hotpotTokenAbi = await HotpotERC20Mixed__factory.connect(token.address, buyer);
 
             await network.provider.send("hardhat_setBalance", [treasury.address, "0x0"]);
             await network.provider.send("hardhat_setBalance", [platform.address, "0x0"]);
@@ -174,7 +170,7 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
                     ),
                     "误差损失当线性增长"
                 ).to.lt(Wei.mul(1000 * (round + 2)));
-                let burnTx2 = await hotpotTokenAbi.connect(buyer).burn(buyer.address, totalErc20Balance.div(100),0);
+                let burnTx2 = await hotpotTokenAbi.connect(buyer).burn(buyer.address, totalErc20Balance.div(100), 0);
                 await burnTx2.wait();
             }
         });
@@ -188,7 +184,7 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
             let buyer3 = signers[Id.Buyer3];
 
             const token = await hre.expToken();
-            const hotpotTokenAbi = await ExpMixedHotpotToken__factory.connect(token.address, buyer1);
+            const hotpotTokenAbi = await HotpotERC20Mixed__factory.connect(token.address, buyer1);
 
             await network.provider.send("hardhat_setBalance", [treasury.address, "0x0"]);
             await network.provider.send("hardhat_setBalance", [platform.address, "0x0"]);
@@ -220,7 +216,7 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
                 let buyer2Erc20 = await hotpotTokenAbi.balanceOf(buyer2.address);
                 let burnTx2 = await hotpotTokenAbi
                     .connect(buyer2)
-                    .burn(buyer2.address, buyer2Erc20.mul(Math.floor(Math.random() * 99) + 1).div(100),0);
+                    .burn(buyer2.address, buyer2Erc20.mul(Math.floor(Math.random() * 99) + 1).div(100), 0);
                 await burnTx2.wait();
                 // buyer 3 随机买大单，并随机往 buyer 2，buyer 3 中转入
                 // buyer 3 会触发随机的抛出动作
@@ -240,7 +236,7 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
                     if (buyer3Erc20.gt(Ether)) {
                         let burnTx3 = await hotpotTokenAbi
                             .connect(buyer3)
-                            .burn(buyer3.address, buyer3Erc20.mul(Math.floor(Math.random() * 99) + 1).div(100),0);
+                            .burn(buyer3.address, buyer3Erc20.mul(Math.floor(Math.random() * 99) + 1).div(100), 0);
                         await burnTx3.wait();
                     }
                 }

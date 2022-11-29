@@ -85,14 +85,11 @@ abstract contract HotpotERC20Base is ERC20VotesUpgradeable, HotpotMetadata, Swap
         emit LogProjectAdminChanged(newProjectAdmin);
     }
 
-    function publishToken(address gov) public onlyRole(FACTORY_ROLE) {
+    function setGov(address gov) public onlyRole(FACTORY_ROLE) {
         require(gov != address(0), "Invalid Address");
         _grantRole(PROJECT_ADMIN_ROLE, gov);
         _revokeRole(PROJECT_ADMIN_ROLE, _projectAdmin);
         _projectAdmin = gov;
-        if (!paused()) {
-            unpause();
-        }
         emit LogProjectAdminChanged(gov);
     }
 
@@ -136,6 +133,12 @@ abstract contract HotpotERC20Base is ERC20VotesUpgradeable, HotpotMetadata, Swap
 
     function isSbt() public view returns (bool) {
         return _isSbt;
+    }
+
+    function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
+        super._beforeTokenTransfer(from, to, amount);
+
+        require(!paused(), "ERC20Pausable: token transfer while paused");
     }
 
     function _transfer(address from, address to, uint256 amount) internal override {

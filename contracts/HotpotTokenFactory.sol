@@ -47,7 +47,7 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
         _proxyAdmin = new ProxyAdmin();
     }
 
-    function deployToken(TokenInfo calldata token) public {
+    function deployToken(TokenInfo calldata token) public payable {
         bytes memory call = abi.encodeWithSelector(
             HotpotERC20Mixed.initialize.selector,
             getBondingCurveImplement(token.tokenType),
@@ -68,10 +68,14 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
         tokens[tokensLength] = address(proxy);
         tokensLength++;
         tokensType[address(proxy)] = token.tokenType;
+        if (msg.value > 0) {
+            (uint256 minReceive, , , ) = IHotpotToken(address(proxy)).estimateMint(msg.value);
+            IHotpotToken(address(proxy)).mint{value: msg.value}(msg.sender, minReceive);
+        }
         emit LogTokenDeployed(token.tokenType, tokenId, address(proxy));
     }
 
-    function publishToken(address proxyAddr, GovInfo calldata govInfo) public payable {
+    function createGovernorForToken(address proxyAddr, GovInfo calldata govInfo) public {
         bytes32 projectAdminRole = IHotpotToken(proxyAddr).getProjectAdminRole();
         require(IHotpotToken(proxyAddr).hasRole(projectAdminRole, msg.sender), "not project admin");
         Governor gov = new Governor(
@@ -83,21 +87,17 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
             govInfo.quorumVotes,
             govInfo.timelockDelay
         );
-        IHotpotToken(proxyAddr).publishToken(address(gov));
-        if (msg.value > 0) {
-            (uint256 minReceive, , , ) = IHotpotToken(proxyAddr).estimateMint(msg.value);
-            IHotpotToken(proxyAddr).mint{value: msg.value}(msg.sender, minReceive);
-        }
-        emit LogTokenPublished(address(proxyAddr), address(gov));
+        IHotpotToken(proxyAddr).setGov(address(gov));
+        emit LogGovernorCreated(address(proxyAddr), address(gov));
     }
 
     function setPlatformTaxRate(uint256 platformMintTax, uint256 platformBurnTax) public onlyRole(PLATFORM_ADMIN_ROLE) {
         require(
-            MAX_PLATFORM_TAX_RATE <= platformMintTax && platformMintTax >= 0,
+            MAX_PLATFORM_TAX_RATE >= platformMintTax && platformMintTax >= 0,
             "SetTax:Platform Mint Tax Rate must between 0% to 1%"
         );
         require(
-            MAX_PLATFORM_TAX_RATE <= platformBurnTax && platformBurnTax >= 0,
+            MAX_PLATFORM_TAX_RATE >= platformBurnTax && platformBurnTax >= 0,
             "SetTax:Platform Burn Tax Rate must between 0% to 1%"
         );
         _platformMintTax = platformMintTax;

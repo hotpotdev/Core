@@ -15,7 +15,7 @@ contract LinearMixedBondingSwap is IBondingCurve {
 
     function getParameter(bytes memory data) private pure returns (uint256 k, uint256 p) {
         (k, p) = abi.decode(data, (uint256, uint256));
-        require(k <= 100000 && k > 0, "Create: Invalid k");
+        require(k <= 100000 && k >= 0, "Create: Invalid k");
         require(p <= 1e24 && p >= 0, "Create: Invalid p");
     }
 

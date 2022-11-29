@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
 import { defines } from "../../hardhat.config";
-import { ExpMixedHotpotToken__factory } from "../../typechain";
+import { HotpotERC20Mixed__factory } from "../../typechain";
 
 const hre = require("hardhat");
 const Ether = defines.Unit.Ether;
@@ -18,7 +18,7 @@ describe("验证 Mint Cap 铸造限制", async () => {
             ]);
 
             const token = await hre.expToken(500, 1000, false, Ether.mul(10000));
-            const hotpotTokenAbi = await ExpMixedHotpotToken__factory.connect(token.address, buyer);
+            const hotpotTokenAbi = await HotpotERC20Mixed__factory.connect(token.address, buyer);
 
             let price = await hotpotTokenAbi.price();
             // mint 1 eth
