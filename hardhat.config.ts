@@ -26,6 +26,7 @@ extendEnvironment(async (hre: any) => {
     hre.platform = signers[defines.Id.Platform];
     hre.treasury = signers[defines.Id.Treasury];
     const DefaultMintCap = defines.Unit.Ether.mul(25000000);
+    hre.initCount = 0;
     hre.expToken = async (mintRate = 100, burnRate = 100, isSbt = false, mintCap = DefaultMintCap) =>
         await initFactory(hre, "Exp", mintRate, burnRate, isSbt, mintCap);
     hre.sqrtToken = async (mintRate = 100, burnRate = 100, isSbt = false, mintCap = DefaultMintCap) =>
@@ -50,24 +51,32 @@ async function initFactory(hre: any, type, mintRate, burnRate, isSbt, mintCap) {
         defines.Unit.Ether.mul(100)._hex.replace(/0x0+/, "0x"),
     ]);
 
-    let hotpotFactoryContract = "HotpotTokenFactory";
-    const hotpotToken = await hre.ethers.getContractFactory(hotpotTokenContract);
-    const hotpot = await hotpotToken.deploy();
-    const HotpotFactory = await hre.ethers.getContractFactory(hotpotFactoryContract);
-    const factory = await upgrades.deployProxy(HotpotFactory, [hre.platform.address, hre.platform.address, hotpot.address]);
-    hre.factory = factory;
-    const expToken = await hre.ethers.getContractFactory(expTokenContract);
-    const exp = await expToken.deploy();
-    const linearToken = await hre.ethers.getContractFactory(linearTokenContract);
-    const linear = await linearToken.deploy();
-    const sqrtToken = await hre.ethers.getContractFactory(sqrtTokenContract);
-    const sqrt = await sqrtToken.deploy();
     const expType = "exponential";
     const linearType = "linear";
     const sqrtType = "squareroot";
-    await hre.factory.connect(hre.platform).addBondingCurveImplement(exp.address);
-    await hre.factory.connect(hre.platform).addBondingCurveImplement(linear.address);
-    await hre.factory.connect(hre.platform).addBondingCurveImplement(sqrt.address);
+    if (!hre.factory) {
+        let hotpotFactoryContract = "HotpotTokenFactory";
+        const hotpotToken = await hre.ethers.getContractFactory(hotpotTokenContract);
+        const hotpot = await hotpotToken.deploy();
+        const HotpotFactory = await hre.ethers.getContractFactory(hotpotFactoryContract);
+        const factory = await upgrades.deployProxy(HotpotFactory, [
+            hre.platform.address,
+            hre.platform.address,
+            hotpot.address,
+        ]);
+        hre.factory = factory;
+        const expToken = await hre.ethers.getContractFactory(expTokenContract);
+        const exp = await expToken.deploy();
+        const linearToken = await hre.ethers.getContractFactory(linearTokenContract);
+        const linear = await linearToken.deploy();
+        const sqrtToken = await hre.ethers.getContractFactory(sqrtTokenContract);
+        const sqrt = await sqrtToken.deploy();
+        await hre.factory.connect(hre.platform).addBondingCurveImplement(exp.address);
+        await hre.factory.connect(hre.platform).addBondingCurveImplement(linear.address);
+        await hre.factory.connect(hre.platform).addBondingCurveImplement(sqrt.address);
+        console.log("factory address:", factory.address);
+    }
+
     hre.mintRate = mintRate;
     hre.burnRate = burnRate;
     const data1 = hre.ethers.utils.defaultAbiCoder.encode(
@@ -76,59 +85,56 @@ async function initFactory(hre: any, type, mintRate, burnRate, isSbt, mintCap) {
     );
     const data2 = hre.ethers.utils.defaultAbiCoder.encode(["uint256", "uint256"], [14, 2e6]);
     const data3 = hre.ethers.utils.defaultAbiCoder.encode(["uint256"], [1]);
-    await hre.factory.connect(hre.platform).deployToken({
-        tokenType: linearType,
-        name: "Test Linear Token",
-        symbol: "TLT",
-        metadata: "tlt meta",
-        projectAdmin: hre.treasury.address,
-        projectTreasury: hre.treasury.address,
-        projectMintTax: mintRate,
-        projectBurnTax: burnRate,
-        mintCap: mintCap,
-        isSbt: isSbt,
-        data: data1,
-    });
-    await hre.factory.connect(hre.platform).deployToken({
-        tokenType: expType,
-        name: "Test Exponential Token",
-        symbol: "TET",
-        metadata: "tet meta",
-        projectAdmin: hre.treasury.address,
-        projectTreasury: hre.treasury.address,
-        projectMintTax: mintRate,
-        projectBurnTax: burnRate,
-        mintCap: mintCap,
-        isSbt: isSbt,
-        data: data2,
-    });
-    await hre.factory.connect(hre.platform).deployToken({
-        tokenType: sqrtType,
-        name: "Test Squareroot Token",
-        symbol: "TST",
-        metadata: "tst meta",
-        projectAdmin: hre.treasury.address,
-        projectTreasury: hre.treasury.address,
-        projectMintTax: mintRate,
-        projectBurnTax: burnRate,
-        mintCap: mintCap,
-        isSbt: isSbt,
-        data: data3,
-    });
-    const linearAddr = await hre.factory.getToken(0);
-    const expAddr = await hre.factory.getToken(1);
-    const sqrtAddr = await hre.factory.getToken(2);
-
-    //   console.log("exp address:", expAddr)
-    //   console.log("linear address:", linearAddr)
     switch (type) {
         case "Exp":
-            return await hre.ethers.getContractAt(hotpotTokenContract, expAddr);
+            await hre.factory.connect(hre.platform).deployToken({
+                tokenType: expType,
+                name: "Test Exponential Token" + hre.initCount,
+                symbol: "TET" + hre.initCount,
+                metadata: "tet meta",
+                projectAdmin: hre.treasury.address,
+                projectTreasury: hre.treasury.address,
+                projectMintTax: mintRate,
+                projectBurnTax: burnRate,
+                mintCap: mintCap,
+                isSbt: isSbt,
+                data: data2,
+            });
+            break;
         case "Linear":
-            return await hre.ethers.getContractAt(hotpotTokenContract, linearAddr);
+            await hre.factory.connect(hre.platform).deployToken({
+                tokenType: linearType,
+                name: "Test Linear Token" + hre.initCount,
+                symbol: "TLT" + hre.initCount,
+                metadata: "tlt meta",
+                projectAdmin: hre.treasury.address,
+                projectTreasury: hre.treasury.address,
+                projectMintTax: mintRate,
+                projectBurnTax: burnRate,
+                mintCap: mintCap,
+                isSbt: isSbt,
+                data: data1,
+            });
+            break;
         case "Sqrt":
-            return await hre.ethers.getContractAt(hotpotTokenContract, sqrtAddr);
+            await hre.factory.connect(hre.platform).deployToken({
+                tokenType: sqrtType,
+                name: "Test Squareroot Token" + hre.initCount,
+                symbol: "TST" + hre.initCount,
+                metadata: "tst meta",
+                projectAdmin: hre.treasury.address,
+                projectTreasury: hre.treasury.address,
+                projectMintTax: mintRate,
+                projectBurnTax: burnRate,
+                mintCap: mintCap,
+                isSbt: isSbt,
+                data: data3,
+            });
+            break;
     }
+    const addr = await hre.factory.getToken(hre.initCount++);
+    console.log(addr, hre.initCount, await hre.factory.getTokensLength());
+    return await hre.ethers.getContractAt(hotpotTokenContract, addr);
 }
 
 const config: HardhatUserConfig = {

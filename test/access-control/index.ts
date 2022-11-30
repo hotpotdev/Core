@@ -133,6 +133,9 @@ describe("验证 Factory 权限", async () => {
                 await factoryAbi.hasRole(await factoryAbi.PLATFORM_ADMIN_ROLE(), platform.address),
                 "重置 platform 后 老的 platform 不再拥有 PlatformAdmin 权限"
             ).to.false;
+            //还原权限
+            await factoryAbi.connect(buyer).setPlatformTreasury(platform.address);
+            await factoryAbi.connect(buyer).setPlatformAdmin(platform.address);
         });
     });
 });
