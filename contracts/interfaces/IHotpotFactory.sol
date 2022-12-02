@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 interface IHotpotFactory {
     struct TokenInfo {
         string tokenType;
+        string bondingCurveType;
         string name;
         string symbol;
         string metadata;
@@ -31,11 +32,11 @@ interface IHotpotFactory {
 
     function addBondingCurveImplement(address impl) external;
 
-    function updateHotpotImplement(address impl) external;
+    function updateHotpotImplement(string calldata tokenType, address impl) external;
 
-    function getHotpotImplement() external view returns (address impl);
+    function getHotpotImplement(string memory tokenType) external view returns (address impl);
 
-    function getBondingCurveImplement(string calldata tokenType) external view returns (address impl);
+    function getBondingCurveImplement(string calldata bondingCurveType) external view returns (address impl);
 
     function setPlatformTaxRate(uint256 platformMintTax, uint256 platformBurnTax) external;
 
@@ -61,7 +62,7 @@ interface IHotpotFactory {
 
     function upgradeTokenImplement(address proxyAddress) external payable;
 
-    event LogTokenDeployed(string tokenType, uint256 tokenId, address deployedAddr);
+    event LogTokenDeployed(string tokenType, string bondingCurveType, uint256 tokenId, address deployedAddr);
     event LogGovernorCreated(address proxyAddr, address govAddr);
 
     event LogTokenUpgradeRequested(

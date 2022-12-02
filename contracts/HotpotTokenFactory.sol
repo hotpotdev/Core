@@ -21,7 +21,7 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
 
     uint256 private tokensLength;
 
-    address private _hotpotImplementAddr;
+    mapping(string => address) private _hotpotImplementMap;
     address private _platformAdmin;
     address private _platformTreasury;
     ProxyAdmin private _proxyAdmin;
@@ -37,20 +37,19 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
 
     fallback() external payable {}
 
-    function initialize(address platformAdmin, address platformTreasury, address hotpotImplementAddr) public initializer {
+    function initialize(address platformAdmin, address platformTreasury) public initializer {
         _grantRole(PLATFORM_ADMIN_ROLE, platformAdmin);
         _platformAdmin = platformAdmin;
         _platformTreasury = platformTreasury;
         _platformMintTax = 80;
         _platformBurnTax = 80;
-        _hotpotImplementAddr = hotpotImplementAddr;
         _proxyAdmin = new ProxyAdmin();
     }
 
     function deployToken(TokenInfo calldata token) public payable {
         bytes memory call = abi.encodeWithSelector(
             HotpotERC20Mixed.initialize.selector,
-            getBondingCurveImplement(token.tokenType),
+            getBondingCurveImplement(token.bondingCurveType),
             token.name,
             token.symbol,
             token.metadata,
@@ -63,7 +62,11 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
             token.data,
             address(this)
         );
-        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(_hotpotImplementAddr, address(_proxyAdmin), call);
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+            getHotpotImplement(token.tokenType),
+            address(_proxyAdmin),
+            call
+        );
         uint256 tokenId = tokensLength;
         tokens[tokensLength] = address(proxy);
         tokensLength++;
@@ -72,7 +75,7 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
             (uint256 minReceive, , , ) = IHotpotToken(address(proxy)).estimateMint(msg.value);
             IHotpotToken(address(proxy)).mint{value: msg.value}(msg.sender, minReceive);
         }
-        emit LogTokenDeployed(token.tokenType, tokenId, address(proxy));
+        emit LogTokenDeployed(token.tokenType, token.bondingCurveType, tokenId, address(proxy));
     }
 
     function createGovernorForToken(address proxyAddr, GovInfo calldata govInfo) public {
@@ -118,18 +121,18 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
         emit LogTokenTypeImplAdded(tokenType, impl);
     }
 
-    function getBondingCurveImplement(string calldata tokenType) public view returns (address impl) {
-        impl = _implementsMap[tokenType];
+    function getBondingCurveImplement(string calldata bondingCurveType) public view returns (address impl) {
+        impl = _implementsMap[bondingCurveType];
         require(impl != address(0), "no such implement");
     }
 
-    function updateHotpotImplement(address impl) public onlyRole(PLATFORM_ADMIN_ROLE) {
-        _hotpotImplementAddr = impl;
+    function updateHotpotImplement(string calldata tokenType, address impl) public onlyRole(PLATFORM_ADMIN_ROLE) {
+        _hotpotImplementMap[tokenType] = impl;
     }
 
-    function getHotpotImplement() external view returns (address impl) {
-        require(_hotpotImplementAddr != address(0), "no implement");
-        impl = _hotpotImplementAddr;
+    function getHotpotImplement(string memory tokenType) public view returns (address impl) {
+        impl = _hotpotImplementMap[tokenType];
+        require(impl != address(0), "no such implement");
     }
 
     function getTokensLength() public view returns (uint256 len) {
@@ -176,14 +179,15 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
     }
 
     function requestUpgrade(address proxyAddress, bytes calldata data) external onlyRole(PLATFORM_ADMIN_ROLE) {
+        string memory tokenType = tokensType[proxyAddress];
+        address tokenImpl = getHotpotImplement(tokenType);
         require(
-            _hotpotImplementAddr != _proxyAdmin.getProxyImplementation(TransparentUpgradeableProxy(payable(proxyAddress))),
+            tokenImpl != _proxyAdmin.getProxyImplementation(TransparentUpgradeableProxy(payable(proxyAddress))),
             "Upgrade Failed: Same Implement"
         );
-        require(_hotpotImplementAddr != address(0), "Invalid Implement");
         upgradeTimelock[proxyAddress] = block.timestamp + 2 days;
-        upgradeList[proxyAddress] = abi.encode(_hotpotImplementAddr, data);
-        emit LogTokenUpgradeRequested(proxyAddress, upgradeTimelock[proxyAddress], _hotpotImplementAddr, msg.sender, data);
+        upgradeList[proxyAddress] = abi.encode(tokenImpl, data);
+        emit LogTokenUpgradeRequested(proxyAddress, upgradeTimelock[proxyAddress], tokenImpl, msg.sender, data);
     }
 
     function rejectUpgrade(address proxyAddress, string calldata reason) external {

@@ -50,20 +50,12 @@ async function initFactory(hre: any, type, mintRate, burnRate, isSbt, mintCap) {
         hre.platform.address,
         defines.Unit.Ether.mul(100)._hex.replace(/0x0+/, "0x"),
     ]);
-
-    const expType = "exponential";
-    const linearType = "linear";
-    const sqrtType = "squareroot";
     if (!hre.factory) {
         let hotpotFactoryContract = "HotpotTokenFactory";
         const hotpotToken = await hre.ethers.getContractFactory(hotpotTokenContract);
         const hotpot = await hotpotToken.deploy();
         const HotpotFactory = await hre.ethers.getContractFactory(hotpotFactoryContract);
-        const factory = await upgrades.deployProxy(HotpotFactory, [
-            hre.platform.address,
-            hre.platform.address,
-            hotpot.address,
-        ]);
+        const factory = await upgrades.deployProxy(HotpotFactory, [hre.platform.address, hre.platform.address]);
         hre.factory = factory;
         const expToken = await hre.ethers.getContractFactory(expTokenContract);
         const exp = await expToken.deploy();
@@ -71,6 +63,7 @@ async function initFactory(hre: any, type, mintRate, burnRate, isSbt, mintCap) {
         const linear = await linearToken.deploy();
         const sqrtToken = await hre.ethers.getContractFactory(sqrtTokenContract);
         const sqrt = await sqrtToken.deploy();
+        await hre.factory.connect(hre.platform).updateHotpotImplement(defines.ERC20Type, hotpot.address);
         await hre.factory.connect(hre.platform).addBondingCurveImplement(exp.address);
         await hre.factory.connect(hre.platform).addBondingCurveImplement(linear.address);
         await hre.factory.connect(hre.platform).addBondingCurveImplement(sqrt.address);
@@ -88,7 +81,8 @@ async function initFactory(hre: any, type, mintRate, burnRate, isSbt, mintCap) {
     switch (type) {
         case "Exp":
             await hre.factory.connect(hre.platform).deployToken({
-                tokenType: expType,
+                tokenType: defines.ERC20Type,
+                bondingCurveType: defines.ExpType,
                 name: "Test Exponential Token" + hre.initCount,
                 symbol: "TET" + hre.initCount,
                 metadata: "tet meta",
@@ -103,7 +97,8 @@ async function initFactory(hre: any, type, mintRate, burnRate, isSbt, mintCap) {
             break;
         case "Linear":
             await hre.factory.connect(hre.platform).deployToken({
-                tokenType: linearType,
+                tokenType: defines.ERC20Type,
+                bondingCurveType: defines.LinearType,
                 name: "Test Linear Token" + hre.initCount,
                 symbol: "TLT" + hre.initCount,
                 metadata: "tlt meta",
@@ -118,7 +113,8 @@ async function initFactory(hre: any, type, mintRate, burnRate, isSbt, mintCap) {
             break;
         case "Sqrt":
             await hre.factory.connect(hre.platform).deployToken({
-                tokenType: sqrtType,
+                tokenType: defines.ERC20Type,
+                bondingCurveType: defines.SqrtType,
                 name: "Test Squareroot Token" + hre.initCount,
                 symbol: "TST" + hre.initCount,
                 metadata: "tst meta",
@@ -133,7 +129,6 @@ async function initFactory(hre: any, type, mintRate, burnRate, isSbt, mintCap) {
             break;
     }
     const addr = await hre.factory.getToken(hre.initCount++);
-    console.log(addr, hre.initCount, await hre.factory.getTokensLength());
     return await hre.ethers.getContractAt(hotpotTokenContract, addr);
 }
 
@@ -154,6 +149,10 @@ const config: HardhatUserConfig = {
             accounts: {
                 accountsBalance: "200000000000000000000001",
             },
+            allowUnlimitedContractSize: true,
+        },
+        local: {
+            url: "http://192.168.3.83:8545",
             allowUnlimitedContractSize: true,
         },
         gpnode: {
@@ -205,4 +204,9 @@ export const defines = {
         Buyer3: 6,
         Default: 7,
     },
+    ExpType: "exponential",
+    LinearType: "linear",
+    SqrtType: "squareroot",
+    ERC20Type: "ERC20",
+    ERC721Type: "ERC721",
 };

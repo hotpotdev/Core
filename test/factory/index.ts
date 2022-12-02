@@ -64,11 +64,11 @@ describe("Factory 功能 Test", async () => {
         const up = await upgraded.deploy();
         await up.deployed();
         await expect(
-            factoryAbi.connect(anyone).updateHotpotImplement(up.address),
+            factoryAbi.connect(anyone).updateHotpotImplement(defines.ERC20Type, up.address),
             "非 platform/treasury 用户不可 updateHotpotImplement"
         ).reverted;
         await expect(
-            factoryAbi.connect(platform).updateHotpotImplement(up.address),
+            factoryAbi.connect(platform).updateHotpotImplement(defines.ERC20Type, up.address),
             "platform/treasury 用户可 updateHotpotImplement"
         ).not.reverted;
         //requestUpgrade

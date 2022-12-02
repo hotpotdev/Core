@@ -2,18 +2,20 @@
 pragma solidity >=0.8.13;
 
 // openzeppelin
-import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721VotesUpgradeable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 // diy
 import "../abstract/HotpotBase.sol";
 import "../interfaces/IHotpotSwap.sol";
 
-contract HotpotERC20Mixed is HotpotBase, ERC20VotesUpgradeable, IHotpotSwap, ReentrancyGuard {
+contract HotpotERC721Mixed is HotpotBase, ERC721VotesUpgradeable, IHotpotSwap, ReentrancyGuard {
     uint256 internal constant MAX_TAX_RATE_DENOMINATOR = 10000;
     uint256 internal constant MAX_PROJECT_TAX_RATE = 2000;
     uint256 internal _projectMintTax = 0;
     uint256 internal _projectBurnTax = 0;
+    CountersUpgradeable.Counter private _counter;
 
     function initialize(
         address bondingCurveAddress,
@@ -29,7 +31,7 @@ contract HotpotERC20Mixed is HotpotBase, ERC20VotesUpgradeable, IHotpotSwap, Ree
         bytes memory parameters,
         address factory
     ) public initializer {
-        __ERC20_init(name, symbol);
+        __ERC721_init(name, symbol);
         _setMintCap(mintCap);
         _changeCoinMaker(bondingCurveAddress);
         _initProject(projectAdmin, projectTreasury);
@@ -58,7 +60,7 @@ contract HotpotERC20Mixed is HotpotBase, ERC20VotesUpgradeable, IHotpotSwap, Ree
 
     //  daoToken 会通过bonding curve铸造销毁所以totalSupply会动态变化
     function _getCurrentSupply() internal view returns (uint256) {
-        return totalSupply();
+        return getPastTotalSupply(block.number - 1);
     }
 
     function mint(address to, uint256 minDaoTokenRecievedAmount) public payable whenNotPaused nonReentrant returns (uint256) {
@@ -73,8 +75,12 @@ contract HotpotERC20Mixed is HotpotBase, ERC20VotesUpgradeable, IHotpotSwap, Ree
         // 计算实际打入bonding curve合约的native token(e.g., eth/bnb)的数量
         uint256 nativeTokenPaidToBondingCurveAmount = nativeTokenPaidAmount - projectFee - platformFee;
         // Calculate the actual amount through Bonding Curve
-        (daoTokenAmount, ) = _calculateMintAmountFromBondingCurve(nativeTokenPaidToBondingCurveAmount, _getCurrentSupply());
-        require(daoTokenAmount > 1e9 && nativeTokenPaidToBondingCurveAmount > 1e9, "Mint: token amount is too low");
+        (daoTokenAmount, ) = _calculateMintAmountFromBondingCurve(
+            nativeTokenPaidToBondingCurveAmount,
+            _getCurrentSupply() * 1e18
+        );
+        daoTokenAmount /= 1e18;
+        require(daoTokenAmount > 0 && nativeTokenPaidToBondingCurveAmount > 1e9, "Mint: token amount is too low");
         // require(_getCurrentSupply() + daoTokenAmount <= cap(), "Mint: exceed dao token max supply");//disable mintCap temporarily
         // 用户/前端会要求最少获得多少daoToken，交易繁忙时如果实际可获得的少于期望的daoToken数量，则revert
         require(daoTokenAmount >= minDaoTokenRecievedAmount, "Mint: mint amount less than minimal expect recieved");
@@ -88,10 +94,16 @@ contract HotpotERC20Mixed is HotpotBase, ERC20VotesUpgradeable, IHotpotSwap, Ree
             (bool success, ) = _projectTreasury.call{value: projectFee}("");
             require(success, "Transfer: charge project gas failed");
         }
-        // 把daoToken铸造给to用户
-        _mint(to, daoTokenAmount);
-
         emit LogMint(to, daoTokenAmount, nativeTokenPaidAmount, platformFee, projectFee);
+        // 把daoNFT铸造给to用户
+        while (daoTokenAmount-- > 0) {
+            uint256 tokenId = CountersUpgradeable.current(_counter);
+            CountersUpgradeable.increment(_counter);
+            _mint(to, tokenId);
+        }
+        if (isSbt()) {
+            require(balanceOf(to) < 2, "can not have more than 1 sbt");
+        }
         return daoTokenAmount;
     }
 
@@ -106,7 +118,7 @@ contract HotpotERC20Mixed is HotpotBase, ERC20VotesUpgradeable, IHotpotSwap, Ree
         platformFee = (nativeTokenPaidAmount * _platformMintTax) / MAX_TAX_RATE_DENOMINATOR;
         (daoTokenAmount, ) = _calculateMintAmountFromBondingCurve(
             nativeTokenPaidAmount - projectFee - platformFee,
-            _getCurrentSupply()
+            _getCurrentSupply() * 1e18
         );
         return (daoTokenAmount, nativeTokenPaidAmount, platformFee, projectFee);
     }
@@ -116,18 +128,19 @@ contract HotpotERC20Mixed is HotpotBase, ERC20VotesUpgradeable, IHotpotSwap, Ree
      */
     function burn(
         address to,
-        uint256 daoTokenPaidAmount,
+        uint256 tokenId,
         uint256 minNativeTokenRecievedAmount
     ) public whenNotPaused nonReentrant returns (uint256) {
+        require(ownerOf(tokenId) == msg.sender, "you do not have this nft");
         require(to != address(0), "can not burn to address(0)");
         // require(msg.value == 0, "Burn: dont need to attach ether");
         address from = _msgSender();
         uint256 nativeTokenWithdrawAmount;
         // Calculate the actual amount through Bonding Curve
         (, uint256 _platformBurnTax) = _factory.getTaxRateOfPlatform();
-        (, nativeTokenWithdrawAmount) = _calculateBurnAmountFromBondingCurve(daoTokenPaidAmount, _getCurrentSupply());
+        (, nativeTokenWithdrawAmount) = _calculateBurnAmountFromBondingCurve(1 * 1e18, _getCurrentSupply() * 1e18);
 
-        require(daoTokenPaidAmount > 1e9 && nativeTokenWithdrawAmount > 1e9, "Balance: token amount is too low");
+        require(nativeTokenWithdrawAmount > 1e9, "Balance: token amount is too low");
         require(address(this).balance >= nativeTokenWithdrawAmount, "Balance: balance is not enough");
 
         uint256 projectFee = (nativeTokenWithdrawAmount * _projectBurnTax) / MAX_TAX_RATE_DENOMINATOR;
@@ -137,8 +150,8 @@ contract HotpotERC20Mixed is HotpotBase, ERC20VotesUpgradeable, IHotpotSwap, Ree
             nativeTokenPaybackAmount >= minNativeTokenRecievedAmount,
             "Burn: payback amount less than minimal expect recieved"
         );
-
-        _burn(from, daoTokenPaidAmount);
+        _burn(tokenId);
+        emit LogBurned(from, 1, nativeTokenPaybackAmount, platformFee, projectFee);
 
         {
             (bool success, ) = _factory.getPlatformTreasury().call{value: platformFee}("");
@@ -155,7 +168,6 @@ contract HotpotERC20Mixed is HotpotBase, ERC20VotesUpgradeable, IHotpotSwap, Ree
             }
         }
 
-        emit LogBurned(from, daoTokenPaidAmount, nativeTokenPaybackAmount, platformFee, projectFee);
         return nativeTokenPaybackAmount;
     }
 
@@ -163,7 +175,7 @@ contract HotpotERC20Mixed is HotpotBase, ERC20VotesUpgradeable, IHotpotSwap, Ree
         uint256 daoTokenAmount
     ) public view returns (uint256, uint256 nativeTokenAmount, uint256 platformFee, uint256 projectFee) {
         (, uint256 _platformBurnTax) = _factory.getTaxRateOfPlatform();
-        (, nativeTokenAmount) = _calculateBurnAmountFromBondingCurve(daoTokenAmount, _getCurrentSupply());
+        (, nativeTokenAmount) = _calculateBurnAmountFromBondingCurve(daoTokenAmount * 1e18, _getCurrentSupply() * 1e18);
 
         projectFee = (nativeTokenAmount * _projectBurnTax) / MAX_TAX_RATE_DENOMINATOR;
         platformFee = (nativeTokenAmount * _platformBurnTax) / MAX_TAX_RATE_DENOMINATOR;
@@ -172,14 +184,16 @@ contract HotpotERC20Mixed is HotpotBase, ERC20VotesUpgradeable, IHotpotSwap, Ree
     }
 
     function price() public view returns (uint256) {
-        return _price(_getCurrentSupply());
+        return _price(_getCurrentSupply() * 1e18);
     }
 
     /**
      * @dev See {IERC165-supportsInterface}.
      */
-    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
-        return interfaceId == type(IHotpotSwap).interfaceId || super.supportsInterface(interfaceId);
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(AccessControlUpgradeable, ERC721Upgradeable) returns (bool) {
+        return super.supportsInterface(interfaceId);
     }
 
     function _setProjectTaxRate(uint256 projectMintTax, uint256 projectBurnTax) internal {
@@ -199,14 +213,21 @@ contract HotpotERC20Mixed is HotpotBase, ERC20VotesUpgradeable, IHotpotSwap, Ree
         emit LogProjectTaxChanged();
     }
 
-    function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
-        super._beforeTokenTransfer(from, to, amount);
-
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 /* firstTokenId */,
+        uint256 amount
+    ) internal virtual override {
+        if (from != address(0) && to != address(0) && isSbt()) {
+            revert("sbt can not transfer");
+        }
         require(!paused(), "ERC20Pausable: token transfer while paused");
+        super._beforeTokenTransfer(from, to, 0, amount);
     }
 
     function _setMintCap(uint256 upperlimit) internal {
-        require(upperlimit >= totalSupply(), "Warning: Mint Cap must great or equl than current supply");
+        require(upperlimit >= _getCurrentSupply(), "Warning: Mint Cap must great or equl than current supply");
         _maxDaoTokenSupply = upperlimit;
     }
 
