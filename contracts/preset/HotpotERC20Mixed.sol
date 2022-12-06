@@ -210,6 +210,21 @@ contract HotpotERC20Mixed is HotpotBase, ERC20VotesUpgradeable, IHotpotSwap, Ree
         _maxDaoTokenSupply = upperlimit;
     }
 
+    function estimateMintNeed(
+        uint tokenAmountWant
+    ) external view returns (uint daoTokenAmount, uint nativeTokenPaidAmount, uint platformFee, uint projectFee) {
+        (uint256 _platformMintTax, ) = _factory.getTaxRateOfPlatform();
+        (daoTokenAmount, nativeTokenPaidAmount) = _calculateBurnAmountFromBondingCurve(
+            tokenAmountWant,
+            _getCurrentSupply() + tokenAmountWant
+        );
+        nativeTokenPaidAmount *= 10000;
+        nativeTokenPaidAmount /= (10000 - _projectMintTax - _platformMintTax);
+        projectFee = (nativeTokenPaidAmount * _projectMintTax) / MAX_TAX_RATE_DENOMINATOR;
+        platformFee = (nativeTokenPaidAmount * _platformMintTax) / MAX_TAX_RATE_DENOMINATOR;
+        return (daoTokenAmount, nativeTokenPaidAmount, platformFee, projectFee);
+    }
+
     event LogProjectTaxChanged();
 
     event LogMint(address to, uint256 daoTokenAmount, uint256 nativeTokenAmount, uint256 platformFee, uint256 projectFee);

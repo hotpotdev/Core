@@ -27,16 +27,17 @@ extendEnvironment(async (hre: any) => {
     hre.treasury = signers[defines.Id.Treasury];
     const DefaultMintCap = defines.Unit.Ether.mul(25000000);
     hre.initCount = 0;
-    hre.expToken = async (mintRate = 100, burnRate = 100, isSbt = false, mintCap = DefaultMintCap) =>
-        await initFactory(hre, "Exp", mintRate, burnRate, isSbt, mintCap);
-    hre.sqrtToken = async (mintRate = 100, burnRate = 100, isSbt = false, mintCap = DefaultMintCap) =>
-        await initFactory(hre, "Sqrt", mintRate, burnRate, isSbt, mintCap);
-    hre.linearToken = async (mintRate = 100, burnRate = 100, isSbt = false, mintCap = DefaultMintCap) =>
-        await initFactory(hre, "Linear", mintRate, burnRate, isSbt, mintCap);
+    hre.expToken = async (mintRate = 100, burnRate = 100, is721 = false, isSbt = false, mintCap = DefaultMintCap) =>
+        await initFactory(hre, "Exp", mintRate, burnRate, is721, isSbt, mintCap);
+    hre.sqrtToken = async (mintRate = 100, burnRate = 100, is721 = false, isSbt = false, mintCap = DefaultMintCap) =>
+        await initFactory(hre, "Sqrt", mintRate, burnRate, is721, isSbt, mintCap);
+    hre.linearToken = async (mintRate = 100, burnRate = 100, is721 = false, isSbt = false, mintCap = DefaultMintCap) =>
+        await initFactory(hre, "Linear", mintRate, burnRate, is721, isSbt, mintCap);
 });
 
-async function initFactory(hre: any, type, mintRate, burnRate, isSbt, mintCap) {
-    let hotpotTokenContract = "HotpotERC20Mixed";
+async function initFactory(hre: any, type, mintRate, burnRate, is721, isSbt, mintCap) {
+    let ERC20Contract = "HotpotERC20Mixed";
+    let ERC721Contract = "HotpotERC721Mixed";
     let expTokenContract = "ExpMixedBondingSwap";
     let linearTokenContract = "LinearMixedBondingSwap";
     let sqrtTokenContract = "SqrtMixedBondingSwap";
@@ -50,10 +51,13 @@ async function initFactory(hre: any, type, mintRate, burnRate, isSbt, mintCap) {
         hre.platform.address,
         defines.Unit.Ether.mul(100)._hex.replace(/0x0+/, "0x"),
     ]);
+    const mainType = is721 ? defines.ERC721Type : defines.ERC20Type;
     if (!hre.factory) {
         let hotpotFactoryContract = "HotpotTokenFactory";
-        const hotpotToken = await hre.ethers.getContractFactory(hotpotTokenContract);
+        const hotpotToken = await hre.ethers.getContractFactory(ERC20Contract);
         const hotpot = await hotpotToken.deploy();
+        const erc721token = await hre.ethers.getContractFactory(ERC721Contract);
+        const erc721 = await erc721token.deploy();
         const HotpotFactory = await hre.ethers.getContractFactory(hotpotFactoryContract);
         const factory = await upgrades.deployProxy(HotpotFactory, [hre.platform.address, hre.platform.address]);
         hre.factory = factory;
@@ -64,6 +68,7 @@ async function initFactory(hre: any, type, mintRate, burnRate, isSbt, mintCap) {
         const sqrtToken = await hre.ethers.getContractFactory(sqrtTokenContract);
         const sqrt = await sqrtToken.deploy();
         await hre.factory.connect(hre.platform).updateHotpotImplement(defines.ERC20Type, hotpot.address);
+        await hre.factory.connect(hre.platform).updateHotpotImplement(defines.ERC721Type, erc721.address);
         await hre.factory.connect(hre.platform).addBondingCurveImplement(exp.address);
         await hre.factory.connect(hre.platform).addBondingCurveImplement(linear.address);
         await hre.factory.connect(hre.platform).addBondingCurveImplement(sqrt.address);
@@ -81,7 +86,7 @@ async function initFactory(hre: any, type, mintRate, burnRate, isSbt, mintCap) {
     switch (type) {
         case "Exp":
             await hre.factory.connect(hre.platform).deployToken({
-                tokenType: defines.ERC20Type,
+                tokenType: mainType,
                 bondingCurveType: defines.ExpType,
                 name: "Test Exponential Token" + hre.initCount,
                 symbol: "TET" + hre.initCount,
@@ -97,7 +102,7 @@ async function initFactory(hre: any, type, mintRate, burnRate, isSbt, mintCap) {
             break;
         case "Linear":
             await hre.factory.connect(hre.platform).deployToken({
-                tokenType: defines.ERC20Type,
+                tokenType: mainType,
                 bondingCurveType: defines.LinearType,
                 name: "Test Linear Token" + hre.initCount,
                 symbol: "TLT" + hre.initCount,
@@ -113,7 +118,7 @@ async function initFactory(hre: any, type, mintRate, burnRate, isSbt, mintCap) {
             break;
         case "Sqrt":
             await hre.factory.connect(hre.platform).deployToken({
-                tokenType: defines.ERC20Type,
+                tokenType: mainType,
                 bondingCurveType: defines.SqrtType,
                 name: "Test Squareroot Token" + hre.initCount,
                 symbol: "TST" + hre.initCount,
@@ -129,7 +134,7 @@ async function initFactory(hre: any, type, mintRate, burnRate, isSbt, mintCap) {
             break;
     }
     const addr = await hre.factory.getToken(hre.initCount++);
-    return await hre.ethers.getContractAt(hotpotTokenContract, addr);
+    return await hre.ethers.getContractAt(is721 ? ERC721Contract : ERC20Contract, addr);
 }
 
 const config: HardhatUserConfig = {

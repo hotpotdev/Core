@@ -60,7 +60,7 @@ contract HotpotERC721Mixed is HotpotBase, ERC721VotesUpgradeable, IHotpotSwap, R
 
     //  daoToken 会通过bonding curve铸造销毁所以totalSupply会动态变化
     function _getCurrentSupply() internal view returns (uint256) {
-        return getPastTotalSupply(block.number - 1);
+        return _getTotalSupply();
     }
 
     function mint(address to, uint256 minDaoTokenRecievedAmount) public payable whenNotPaused nonReentrant returns (uint256) {
@@ -68,7 +68,6 @@ contract HotpotERC721Mixed is HotpotBase, ERC721VotesUpgradeable, IHotpotSwap, R
         // minDaoTokenRecievedAmount是为了用户购买的时候，处理滑点，防止在极端情况获得远少于期望的代币
         uint256 daoTokenAmount;
         uint256 nativeTokenPaidAmount = msg.value;
-
         (uint256 _platformMintTax, ) = _factory.getTaxRateOfPlatform();
         uint256 projectFee = (nativeTokenPaidAmount * _projectMintTax) / MAX_TAX_RATE_DENOMINATOR;
         uint256 platformFee = (nativeTokenPaidAmount * _platformMintTax) / MAX_TAX_RATE_DENOMINATOR;
@@ -96,10 +95,11 @@ contract HotpotERC721Mixed is HotpotBase, ERC721VotesUpgradeable, IHotpotSwap, R
         }
         emit LogMint(to, daoTokenAmount, nativeTokenPaidAmount, platformFee, projectFee);
         // 把daoNFT铸造给to用户
-        while (daoTokenAmount-- > 0) {
+        while (daoTokenAmount > 0) {
             uint256 tokenId = CountersUpgradeable.current(_counter);
             CountersUpgradeable.increment(_counter);
             _mint(to, tokenId);
+            daoTokenAmount--;
         }
         if (isSbt()) {
             require(balanceOf(to) < 2, "can not have more than 1 sbt");
@@ -120,7 +120,22 @@ contract HotpotERC721Mixed is HotpotBase, ERC721VotesUpgradeable, IHotpotSwap, R
             nativeTokenPaidAmount - projectFee - platformFee,
             _getCurrentSupply() * 1e18
         );
-        return (daoTokenAmount, nativeTokenPaidAmount, platformFee, projectFee);
+        return (daoTokenAmount / 1e18, nativeTokenPaidAmount, platformFee, projectFee);
+    }
+
+    function estimateMintNeed(
+        uint tokenAmountWant
+    ) external view returns (uint daoTokenAmount, uint nativeTokenPaidAmount, uint platformFee, uint projectFee) {
+        (uint256 _platformMintTax, ) = _factory.getTaxRateOfPlatform();
+        (daoTokenAmount, nativeTokenPaidAmount) = _calculateBurnAmountFromBondingCurve(
+            tokenAmountWant * 1e18,
+            (_getCurrentSupply() + tokenAmountWant) * 1e18
+        );
+        nativeTokenPaidAmount *= 10000;
+        nativeTokenPaidAmount /= (10000 - _projectMintTax - _platformMintTax);
+        projectFee = (nativeTokenPaidAmount * _projectMintTax) / MAX_TAX_RATE_DENOMINATOR;
+        platformFee = (nativeTokenPaidAmount * _platformMintTax) / MAX_TAX_RATE_DENOMINATOR;
+        return (daoTokenAmount / 1e18, nativeTokenPaidAmount, platformFee, projectFee);
     }
 
     /**
@@ -176,7 +191,6 @@ contract HotpotERC721Mixed is HotpotBase, ERC721VotesUpgradeable, IHotpotSwap, R
     ) public view returns (uint256, uint256 nativeTokenAmount, uint256 platformFee, uint256 projectFee) {
         (, uint256 _platformBurnTax) = _factory.getTaxRateOfPlatform();
         (, nativeTokenAmount) = _calculateBurnAmountFromBondingCurve(daoTokenAmount * 1e18, _getCurrentSupply() * 1e18);
-
         projectFee = (nativeTokenAmount * _projectBurnTax) / MAX_TAX_RATE_DENOMINATOR;
         platformFee = (nativeTokenAmount * _platformBurnTax) / MAX_TAX_RATE_DENOMINATOR;
         nativeTokenAmount = nativeTokenAmount - projectFee - platformFee;
@@ -229,6 +243,10 @@ contract HotpotERC721Mixed is HotpotBase, ERC721VotesUpgradeable, IHotpotSwap, R
     function _setMintCap(uint256 upperlimit) internal {
         require(upperlimit >= _getCurrentSupply(), "Warning: Mint Cap must great or equl than current supply");
         _maxDaoTokenSupply = upperlimit;
+    }
+
+    function _baseURI() internal view override returns (string memory) {
+        return getMetadata();
     }
 
     event LogProjectTaxChanged();
