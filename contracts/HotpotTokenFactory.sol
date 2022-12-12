@@ -114,11 +114,11 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
 
     function addBondingCurveImplement(address impl) public onlyRole(PLATFORM_ADMIN_ROLE) {
         require(impl != address(0), "invalid implement");
-        string memory tokenType = IBondingCurve(impl).BondingCurveType();
-        require(bytes(tokenType).length != bytes("").length, "bonding curve type error");
-        require(_implementsMap[tokenType] == address(0), "this type already exist");
-        _implementsMap[tokenType] = impl;
-        emit LogTokenTypeImplAdded(tokenType, impl);
+        string memory bondingCurveType = IBondingCurve(impl).BondingCurveType();
+        require(bytes(bondingCurveType).length != bytes("").length, "bonding curve type error");
+        require(_implementsMap[bondingCurveType] == address(0), "this type already exist");
+        _implementsMap[bondingCurveType] = impl;
+        emit LogBondingCurveTypeImplAdded(bondingCurveType, impl);
     }
 
     function getBondingCurveImplement(string calldata bondingCurveType) public view returns (address impl) {
@@ -128,6 +128,7 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
 
     function updateHotpotImplement(string calldata tokenType, address impl) public onlyRole(PLATFORM_ADMIN_ROLE) {
         _hotpotImplementMap[tokenType] = impl;
+        emit LogTokenTypeImplAdded(tokenType, impl);
     }
 
     function getHotpotImplement(string memory tokenType) public view returns (address impl) {

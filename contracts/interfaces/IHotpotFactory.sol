@@ -77,6 +77,8 @@ interface IHotpotFactory {
 
     event LogTokenTypeImplAdded(string tokenType, address impl);
 
+    event LogBondingCurveTypeImplAdded(string tokenType, address impl);
+
     event LogPlatformAdminChanged(address newAccount);
 
     event LogPlatformTreasuryChanged(address newAccount);

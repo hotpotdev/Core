@@ -18,7 +18,7 @@ abstract contract HotpotBase is HotpotMetadata, SwapCurve, AccessControlUpgradea
     IHotpotFactory internal _factory;
     bool internal _isSbt;
 
-    uint256 internal _maxDaoTokenSupply = 1e36;
+    uint256 internal _maxDaoTokenSupply = 0;
     bool private _doomsday = false;
 
     modifier whenNotPaused() {
