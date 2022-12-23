@@ -25,17 +25,16 @@ extendEnvironment(async (hre: any) => {
     let signers = await hre.ethers.getSigners();
     hre.platform = signers[defines.Id.Platform];
     hre.treasury = signers[defines.Id.Treasury];
-    const DefaultMintCap = defines.Unit.Ether.mul(25000000);
     hre.initCount = 0;
-    hre.expToken = async (mintRate = 100, burnRate = 100, is721 = false, isSbt = false, mintCap = DefaultMintCap) =>
-        await initFactory(hre, "Exp", mintRate, burnRate, is721, isSbt, mintCap);
-    hre.sqrtToken = async (mintRate = 100, burnRate = 100, is721 = false, isSbt = false, mintCap = DefaultMintCap) =>
-        await initFactory(hre, "Sqrt", mintRate, burnRate, is721, isSbt, mintCap);
-    hre.linearToken = async (mintRate = 100, burnRate = 100, is721 = false, isSbt = false, mintCap = DefaultMintCap) =>
-        await initFactory(hre, "Linear", mintRate, burnRate, is721, isSbt, mintCap);
+    hre.expToken = async (mintRate = 100, burnRate = 100, is721 = false, isSbt = false) =>
+        await initFactory(hre, "Exp", mintRate, burnRate, is721, isSbt);
+    hre.sqrtToken = async (mintRate = 100, burnRate = 100, is721 = false, isSbt = false) =>
+        await initFactory(hre, "Sqrt", mintRate, burnRate, is721, isSbt);
+    hre.linearToken = async (mintRate = 100, burnRate = 100, is721 = false, isSbt = false) =>
+        await initFactory(hre, "Linear", mintRate, burnRate, is721, isSbt);
 });
 
-async function initFactory(hre: any, type, mintRate, burnRate, is721, isSbt, mintCap) {
+async function initFactory(hre: any, type, mintRate, burnRate, is721, isSbt) {
     let ERC20Contract = "HotpotERC20Mixed";
     let ERC721Contract = "HotpotERC721Mixed";
     let expTokenContract = "ExpMixedBondingSwap";
@@ -95,7 +94,6 @@ async function initFactory(hre: any, type, mintRate, burnRate, is721, isSbt, min
                 projectTreasury: hre.treasury.address,
                 projectMintTax: mintRate,
                 projectBurnTax: burnRate,
-                mintCap: mintCap,
                 isSbt: isSbt,
                 data: data2,
             });
@@ -111,7 +109,6 @@ async function initFactory(hre: any, type, mintRate, burnRate, is721, isSbt, min
                 projectTreasury: hre.treasury.address,
                 projectMintTax: mintRate,
                 projectBurnTax: burnRate,
-                mintCap: mintCap,
                 isSbt: isSbt,
                 data: data1,
             });
@@ -127,7 +124,6 @@ async function initFactory(hre: any, type, mintRate, burnRate, is721, isSbt, min
                 projectTreasury: hre.treasury.address,
                 projectMintTax: mintRate,
                 projectBurnTax: burnRate,
-                mintCap: mintCap,
                 isSbt: isSbt,
                 data: data3,
             });

@@ -1,69 +1,64 @@
-import { ethers, network } from "hardhat";
+import { ethers, network, upgrades } from "hardhat";
 import { defines } from "../hardhat.config";
-import { ExpMixedHotpotToken__factory, HotpotTokenFactory__factory } from "../typechain";
+import { HotpotERC20Mixed__factory, HotpotERC721Mixed__factory, HotpotTokenFactory__factory } from "../typechain";
+import "@openzeppelin/hardhat-upgrades";
+const hre = require("hardhat");
+const round = 10;
+const Ether = defines.Unit.Ether;
+const Id = defines.Id;
 
-const hre = require('hardhat')
-const round = 10
-const Ether = defines.Unit.Ether
-const Id = defines.Id
+async function deployContract(c: string) {
+    return (await (await ethers.getContractFactory(c)).deploy()).address;
+}
 
 async function main() {
-
     // Compile our Contracts, just in case
-    await hre.run('compile');
-    let factoryAddress
-    let tokenAddress
+    await hre.run("compile");
     // Defines
-    let expTokenContract="ExpMixedHotpotToken"
-    let linearTokenContract="LinearMixedHotpotToken"
-    // Get Signers
-    const signers = await ethers.getSigners();
-    const buyer = signers[Id.Buyer]
-    const treasury = signers[Id.Treasury]
-    const platform = signers[Id.Platform]
-    // Reset Network Balance
-    await network.provider.send("hardhat_setBalance", [treasury.address, Ether.mul(1000000)._hex.replace(/0x0+/, '0x')])
-    await network.provider.send("hardhat_setBalance", [platform.address, Ether.mul(1000000)._hex.replace(/0x0+/, '0x')])
-    await network.provider.send("hardhat_setBalance", [buyer.address, Ether.mul(1000000)._hex.replace(/0x0+/, '0x')])
-    // Deploy
-    const tokenProxy = await hre.expToken();
-    factoryAddress = factoryAddress || hre.factory.address
-    console.log(`Hotpot Token Factory deployed to: ${factoryAddress}`)
-    console.log(`Exp Hotpot Token deployed to: ${tokenProxy.address}`)
-    // Get Abis
-    const hotpotFactoryAbi = HotpotTokenFactory__factory.connect(factoryAddress,buyer)
-    const hotpotTokenAbi = ExpMixedHotpotToken__factory.connect(tokenProxy.address,buyer)
-    // Tasks
-    for (let i = 0; i < round; i++) {
-        let mintTx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: Ether.mul(500) })
-        await mintTx1.wait()
-        let totalErc20Balance = await hotpotTokenAbi.balanceOf(buyer.address)
-        let burnTx2 = await hotpotTokenAbi.connect(buyer).burn(buyer.address, totalErc20Balance.div(2),0)
-        await burnTx2.wait()
-
-        let platformBalance = await platform.getBalance()
-        let treasuryBalance = await treasury.getBalance()
-        let contractAsset = await ethers.provider.getBalance(hotpotTokenAbi.address)
-        let buyerBalance = await buyer.getBalance()
-        let erc20Balance = await hotpotTokenAbi.balanceOf(buyer.address)
-        let estimateBurn = await hotpotTokenAbi.estimateBurn(erc20Balance)
-        let price = await hotpotTokenAbi.price()
-        console.log(
-            '平台eth余额', ethers.utils.formatEther(platformBalance),
-            '国库eth余额', ethers.utils.formatEther(treasuryBalance),
-            '合约eth资产', ethers.utils.formatEther(contractAsset),
-            '价格eth/erc20', ethers.utils.formatEther(price), '\n',
-            'BUYER eth 余额', ethers.utils.formatEther(buyerBalance),
-            'BUYER erc20 余额', ethers.utils.formatEther(erc20Balance),
-            'BUYER eth 可兑取', ethers.utils.formatEther(estimateBurn.dy),
-            '误差损失 eth wei', contractAsset.sub(estimateBurn.dy).toString(), '\n',
-        )
-    }
+    let erc721 = "HotpotERC721Mixed";
+    let erc20 = "HotpotERC20Mixed";
+    let exp = "ExpMixedBondingSwap";
+    let linear = "LinearMixedBondingSwap";
+    let sqrt = "SqrtMixedBondingSwap";
+    let factory = "HotpotTokenFactory";
+    let signers = await ethers.getSigners();
+    let deployer = signers[0];
+    let govLib = await ethers.getContractFactory("GovernorLib");
+    let govAddr = await govLib.deploy();
+    const HotpotFactory = await ethers.getContractFactory(factory, {
+        libraries: {
+            GovernorLib: govAddr.address,
+            // "0xe88279Ae50eC62843CA09DC55e668E2e5D8aFe21"
+        },
+    });
+    const ff = HotpotTokenFactory__factory.connect(
+        (
+            await upgrades.deployProxy(HotpotFactory, [deployer.address, deployer.address], {
+                unsafeAllowLinkedLibraries: true,
+            })
+        ).address,
+        // "0x729c10a9956f98d7068498f44bcb026ddc76e951",
+        deployer
+    );
+    await ff.addBondingCurveImplement(await deployContract(linear));
+    console.log("add linear succeed");
+    await ff.addBondingCurveImplement(await deployContract(sqrt));
+    console.log("add sqrt succeed");
+    await ff.addBondingCurveImplement(await deployContract(exp));
+    console.log("add exp succeed");
+    await ff.updateHotpotImplement(defines.ERC20Type, await deployContract(erc20));
+    console.log("add ERC20 succeed");
+    await ff.updateHotpotImplement(defines.ERC721Type, await deployContract(erc721));
+    console.log("add ERC721 succeed");
+    console.log("BalanceOfRatioStrategy", await deployContract("BalanceOfRatioStrategy"));
+    console.log("BalanceOfStrategy", await deployContract("BalanceOfStrategy"));
+    console.log("GnosisStrategy", await deployContract("GnosisStrategy"));
+    console.log("Factory", ff.address);
 }
 
 main()
     .then(() => process.exit(0))
-    .catch(error => {
+    .catch((error) => {
         console.error(error);
         process.exit(1);
     });

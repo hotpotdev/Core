@@ -26,13 +26,11 @@ contract HotpotERC721Mixed is HotpotBase, ERC721VotesUpgradeable, IHotpotSwap, R
         address projectTreasury,
         uint256 projectMintTax,
         uint256 projectBurnTax,
-        uint256 mintCap,
         bool isSbt,
         bytes memory parameters,
         address factory
     ) public initializer {
         __ERC721_init(name, symbol);
-        _setMintCap(mintCap);
         _changeCoinMaker(bondingCurveAddress);
         _initProject(projectAdmin, projectTreasury);
         _initFactory(factory);
@@ -238,11 +236,6 @@ contract HotpotERC721Mixed is HotpotBase, ERC721VotesUpgradeable, IHotpotSwap, R
         }
         require(!paused(), "ERC20Pausable: token transfer while paused");
         super._beforeTokenTransfer(from, to, 0, amount);
-    }
-
-    function _setMintCap(uint256 upperlimit) internal {
-        require(upperlimit >= _getCurrentSupply(), "Warning: Mint Cap must great or equl than current supply");
-        _maxDaoTokenSupply = upperlimit;
     }
 
     function _baseURI() internal view override returns (string memory) {

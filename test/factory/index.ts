@@ -42,7 +42,7 @@ describe("Factory 功能 Test", async () => {
         await expect(
             tokenProxy
                 .connect(anyone)
-                ["initialize(address,string,string,string,address,address,uint256,uint256,uint256,bool,bytes,address)"](
+                ["initialize(address,string,string,string,address,address,uint256,uint256,bool,bytes,address)"](
                     curve.address,
                     "TET2",
                     "TET2",
@@ -51,7 +51,6 @@ describe("Factory 功能 Test", async () => {
                     treasury.address,
                     2000,
                     2000,
-                    Ether,
                     false,
                     data2,
                     hre.factory.address

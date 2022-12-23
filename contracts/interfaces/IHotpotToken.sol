@@ -8,6 +8,20 @@ import "@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol
  * @dev Interface of the hotpot swap
  */
 interface IHotpotToken is IAccessControlUpgradeable {
+    function initialize(
+        address bondingCurveAddress,
+        string memory name,
+        string memory symbol,
+        string memory metadata,
+        address projectAdmin,
+        address projectTreasury,
+        uint256 projectMintTax,
+        uint256 projectBurnTax,
+        bool isSbt,
+        bytes memory parameters,
+        address factory
+    ) external;
+
     function setGov(address gov) external;
 
     function getProjectAdminRole() external pure returns (bytes32 role);

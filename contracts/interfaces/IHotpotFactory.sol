@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: MIT
+
+import "../libraries/GovernorLib.sol";
+
 pragma solidity ^0.8.0;
 
 interface IHotpotFactory {
@@ -12,23 +15,13 @@ interface IHotpotFactory {
         address projectTreasury;
         uint256 projectMintTax;
         uint256 projectBurnTax;
-        uint256 mintCap;
         bool isSbt;
         bytes data;
-    }
-    struct GovInfo {
-        address strategyReference;
-        address strategy;
-        uint256 votingPeriod;
-        uint256 votingDelay;
-        uint256 proposalThreshold;
-        uint256 quorumVotes;
-        uint256 timelockDelay;
     }
 
     function deployToken(TokenInfo calldata token) external payable;
 
-    function createGovernorForToken(address proxyAddr, GovInfo calldata token) external;
+    function createGovernorForToken(address proxyAddr, GovernorLib.GovInfo calldata token) external;
 
     function addBondingCurveImplement(address impl) external;
 
@@ -63,7 +56,6 @@ interface IHotpotFactory {
     function upgradeTokenImplement(address proxyAddress) external payable;
 
     event LogTokenDeployed(string tokenType, string bondingCurveType, uint256 tokenId, address deployedAddr);
-    event LogGovernorCreated(address proxyAddr, address govAddr);
 
     event LogTokenUpgradeRequested(
         address proxyAddress,

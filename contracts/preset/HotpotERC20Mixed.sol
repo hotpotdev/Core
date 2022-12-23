@@ -24,13 +24,11 @@ contract HotpotERC20Mixed is HotpotBase, ERC20VotesUpgradeable, IHotpotSwap, Ree
         address projectTreasury,
         uint256 projectMintTax,
         uint256 projectBurnTax,
-        uint256 mintCap,
         bool isSbt,
         bytes memory parameters,
         address factory
     ) public initializer {
         __ERC20_init(name, symbol);
-        _setMintCap(mintCap);
         _changeCoinMaker(bondingCurveAddress);
         _initProject(projectAdmin, projectTreasury);
         _initFactory(factory);
@@ -121,7 +119,7 @@ contract HotpotERC20Mixed is HotpotBase, ERC20VotesUpgradeable, IHotpotSwap, Ree
     ) public whenNotPaused nonReentrant returns (uint256) {
         require(to != address(0), "can not burn to address(0)");
         // require(msg.value == 0, "Burn: dont need to attach ether");
-        address from = _msgSender();
+        address from = _msgSender();  
         uint256 nativeTokenWithdrawAmount;
         // Calculate the actual amount through Bonding Curve
         (, uint256 _platformBurnTax) = _factory.getTaxRateOfPlatform();
@@ -203,11 +201,6 @@ contract HotpotERC20Mixed is HotpotBase, ERC20VotesUpgradeable, IHotpotSwap, Ree
         super._beforeTokenTransfer(from, to, amount);
 
         require(!paused(), "ERC20Pausable: token transfer while paused");
-    }
-
-    function _setMintCap(uint256 upperlimit) internal {
-        require(upperlimit >= totalSupply(), "Warning: Mint Cap must great or equl than current supply");
-        _maxDaoTokenSupply = upperlimit;
     }
 
     function estimateMintNeed(

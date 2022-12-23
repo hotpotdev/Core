@@ -3,12 +3,11 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./interfaces/IHotpotFactory.sol";
 import "./interfaces/IHotpotToken.sol";
-import "hardhat/console.sol";
-import "./preset/HotpotERC20Mixed.sol";
 import "./interfaces/IBondingCurve.sol";
-import "./governor/Governor.sol";
+import {GovernorLib} from "./libraries/GovernorLib.sol";
 
 contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
     bytes32 public constant PLATFORM_ADMIN_ROLE = keccak256("PLATFORM_ADMIN");
@@ -48,7 +47,7 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
 
     function deployToken(TokenInfo calldata token) public payable {
         bytes memory call = abi.encodeWithSelector(
-            HotpotERC20Mixed.initialize.selector,
+            IHotpotToken.initialize.selector,
             getBondingCurveImplement(token.bondingCurveType),
             token.name,
             token.symbol,
@@ -57,7 +56,6 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
             token.projectTreasury,
             token.projectMintTax,
             token.projectBurnTax,
-            token.mintCap,
             token.isSbt,
             token.data,
             address(this)
@@ -78,20 +76,8 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
         emit LogTokenDeployed(token.tokenType, token.bondingCurveType, tokenId, address(proxy));
     }
 
-    function createGovernorForToken(address proxyAddr, GovInfo calldata govInfo) public {
-        bytes32 projectAdminRole = IHotpotToken(proxyAddr).getProjectAdminRole();
-        require(IHotpotToken(proxyAddr).hasRole(projectAdminRole, msg.sender), "not project admin");
-        Governor gov = new Governor(
-            govInfo.strategyReference,
-            govInfo.strategy,
-            govInfo.votingPeriod,
-            govInfo.votingDelay,
-            govInfo.proposalThreshold,
-            govInfo.quorumVotes,
-            govInfo.timelockDelay
-        );
-        IHotpotToken(proxyAddr).setGov(address(gov));
-        emit LogGovernorCreated(address(proxyAddr), address(gov));
+    function createGovernorForToken(address proxyAddr, GovernorLib.GovInfo calldata govInfo) public {
+        GovernorLib.createGovernorForToken(proxyAddr, govInfo);
     }
 
     function setPlatformTaxRate(uint256 platformMintTax, uint256 platformBurnTax) public onlyRole(PLATFORM_ADMIN_ROLE) {

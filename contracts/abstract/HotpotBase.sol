@@ -18,7 +18,6 @@ abstract contract HotpotBase is HotpotMetadata, SwapCurve, AccessControlUpgradea
     IHotpotFactory internal _factory;
     bool internal _isSbt;
 
-    uint256 internal _maxDaoTokenSupply = 0;
     bool private _doomsday = false;
 
     modifier whenNotPaused() {
@@ -28,11 +27,6 @@ abstract contract HotpotBase is HotpotMetadata, SwapCurve, AccessControlUpgradea
 
     function getProjectAdminRole() external pure returns (bytes32 role) {
         return PROJECT_ADMIN_ROLE;
-    }
-
-    // 设置daoToken的铸造上限
-    function cap() public view returns (uint256) {
-        return _maxDaoTokenSupply;
     }
 
     function doomsday() public view returns (bool) {
