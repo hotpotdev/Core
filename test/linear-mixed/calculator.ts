@@ -9,7 +9,7 @@ const Wei = defines.Unit.Wei;
 const Id = defines.Id;
 
 const hre = require("hardhat");
-const data = hre.ethers.utils.defaultAbiCoder.encode(["uint256", "uint256"], [GWei.div(2), Ether]);
+const data = hre.ethers.utils.defaultAbiCoder.encode(["uint256", "uint256"], [Ether.div(2), Ether]);
 // 验证算子正确性，单次铸造并单次销毁
 // calculateMintAmountFromBondingCurve(uint256 nativeTokens, uint256 erc20Supply)
 // calculateBurnAmountFromBondingCurve(uint256 erc20Tokens, uint256 erc20Supply)
@@ -151,7 +151,7 @@ describe("验证 Bonding Curve Swap 计算函数 算子测试", async () => {
             // 测试最小的边界值 1 wei
             // 测试最大的边界值 1e9 ether
             let lowerLimit = ethers.BigNumber.from(1);
-            let upperLimit = Ether.mul(6e7);
+            let upperLimit = Ether.mul(6e10);
             for (let i = lowerLimit; i.lt(upperLimit); i = i.mul(2)) {
                 await testOne(i, Ether);
             }

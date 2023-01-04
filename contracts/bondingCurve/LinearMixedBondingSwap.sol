@@ -27,10 +27,10 @@ contract LinearMixedBondingSwap is IBondingCurve {
         bytes memory parameters
     ) public pure override returns (uint256 daoTokenAmount, uint256) {
         (uint256 k, uint256 p) = getParameter(parameters);
-        uint256 daoTokenCurrentPrice = daoTokenCurrentSupply * k / 1e9 + p;
+        uint256 daoTokenCurrentPrice = daoTokenCurrentSupply * k / 1e18 + p;
         daoTokenAmount =
-            ((daoTokenCurrentPrice * daoTokenCurrentPrice + 2 * nativeTokenAmount * 1e9 * k).sqrt() -
-                daoTokenCurrentPrice) * 1e9 /
+            ((daoTokenCurrentPrice * daoTokenCurrentPrice + 2 * nativeTokenAmount * k).sqrt() -
+                daoTokenCurrentPrice) * 1e18 /
             k;
         return (daoTokenAmount, nativeTokenAmount);
     }
@@ -41,12 +41,12 @@ contract LinearMixedBondingSwap is IBondingCurve {
         bytes memory parameters
     ) public pure override returns (uint256, uint256 nativeTokenAmount) {
         (uint256 k, uint256 p) = getParameter(parameters);
-        nativeTokenAmount = ((daoTokenCurrentSupply * k + p * 1e9) * daoTokenAmount - ((daoTokenAmount * daoTokenAmount) * k ) / 2) / 1e27;
+        nativeTokenAmount = ((daoTokenCurrentSupply * k + p * 1e18) * daoTokenAmount - ((daoTokenAmount * daoTokenAmount) * k ) / 2) / 1e36;
         return (daoTokenAmount, nativeTokenAmount);
     }
 
     function price(uint256 daoTokenCurrentSupply, bytes memory parameters) public pure override returns (uint256) {
         (uint256 k, uint256 p) = getParameter(parameters);
-        return daoTokenCurrentSupply * k / 1e9 + p;
+        return daoTokenCurrentSupply * k / 1e18 + p;
     }
 }
