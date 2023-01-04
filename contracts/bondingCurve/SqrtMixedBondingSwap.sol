@@ -25,7 +25,7 @@ contract SqrtMixedBondingSwap is IBondingCurve {
     ) public pure override returns (uint256 daoTokenAmount, uint256) {
         uint256 a = getParameter(parameters);
         uint256 sdb = daoTokenCurrentSupply.sqrt();
-        uint256 cna = ((3e9 * nativeTokenAmount) / (2 * a) + sdb * sdb * sdb).cuberoot();
+        uint256 cna = ((3e18 * nativeTokenAmount) / (2 * a) + sdb * sdb * sdb).cuberoot();
         daoTokenAmount = cna * cna - daoTokenCurrentSupply;
         return (daoTokenAmount, nativeTokenAmount);
     }
@@ -38,12 +38,12 @@ contract SqrtMixedBondingSwap is IBondingCurve {
         uint256 a = getParameter(parameters);
         uint256 sdb = daoTokenCurrentSupply.sqrt();
         uint256 sda = (daoTokenCurrentSupply - daoTokenAmount).sqrt();
-        nativeTokenAmount = (2 * a * (sdb * sdb * sdb - sda * sda * sda)) / 3e9;
+        nativeTokenAmount = (2 * a * (sdb * sdb * sdb - sda * sda * sda)) / 3e18;
         return (daoTokenAmount, nativeTokenAmount);
     }
 
     function price(uint256 daoTokenCurrentSupply, bytes memory parameters) public pure override returns (uint256) {
         uint256 a = getParameter(parameters);
-        return a * daoTokenCurrentSupply.sqrt() * 1e9;
+        return a * daoTokenCurrentSupply.sqrt();
     }
 }

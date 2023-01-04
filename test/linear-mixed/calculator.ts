@@ -9,7 +9,7 @@ const Wei = defines.Unit.Wei;
 const Id = defines.Id;
 
 const hre = require("hardhat");
-const data = hre.ethers.utils.defaultAbiCoder.encode(["uint256", "uint256"], [2, Ether]);
+const data = hre.ethers.utils.defaultAbiCoder.encode(["uint256", "uint256"], [GWei.div(2), Ether]);
 // 验证算子正确性，单次铸造并单次销毁
 // calculateMintAmountFromBondingCurve(uint256 nativeTokens, uint256 erc20Supply)
 // calculateBurnAmountFromBondingCurve(uint256 erc20Tokens, uint256 erc20Supply)

@@ -10,8 +10,8 @@ const GWei = defines.Unit.GWei;
 const Wei = defines.Unit.Wei;
 const Id = defines.Id;
 
-const a = 14;
-const b = 2e6;
+const a = Ether.mul(14);
+const b = Ether.mul(2e6);
 const hre = require("hardhat");
 const data = hre.ethers.utils.defaultAbiCoder.encode(["uint256", "uint256"], [a, b]);
 // 验证算子正确性，单次铸造并单次销毁

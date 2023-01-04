@@ -10,16 +10,16 @@ const GWei = defines.Unit.GWei;
 const Wei = defines.Unit.Wei;
 const Id = defines.Id;
 
-const a = 1;
+const a = GWei;
 let hre = require("hardhat");
 const data = hre.ethers.utils.defaultAbiCoder.encode(["uint256"], [a]);
 // 验证算子正确性，单次铸造并单次销毁
 describe("验证 Bonding Curve Swap 计算函数 算子测试", async () => {
     let calculatorContract = "SqrtMixedBondingSwap";
-    let supply = Ether.mul(1e6);
+    let supply = Ether.mul(1e8);
     // let supply = Ether.mul(a).mul(b)
-    let px = Ether.mul(1000);
-    let tvl = Ether.mul(2e9).div(3);
+    let px = Ether.mul(10000);
+    let tvl = Ether.mul(GWei.mul(1000)).mul(2).div(3);
     describe("Sqrt Mixed Bonding Swap", async () => {
         it("验证 计算方程 的 结果", async () => {
             let signers = await ethers.getSigners();
