@@ -28,7 +28,7 @@ library GovernorLib {
             govInfo.quorumVotes,
             govInfo.timelockDelay
         );
-        IHotpotToken(proxyAddr).setGov(address(gov));
+        IHotpotToken(proxyAddr).setGov(address(gov.timelock()));
         emit LogGovernorCreated(address(proxyAddr), address(gov));
     }
 }

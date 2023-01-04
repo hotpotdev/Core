@@ -8,6 +8,7 @@ import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 import "@openzeppelin/hardhat-upgrades";
+import { IHotpotFactory__factory } from "./typechain";
 
 dotenv.config();
 // This is a sample Hardhat task. To learn how to create your own go to
@@ -25,7 +26,11 @@ extendEnvironment(async (hre: any) => {
     let signers = await hre.ethers.getSigners();
     hre.platform = signers[defines.Id.Platform];
     hre.treasury = signers[defines.Id.Treasury];
+    // hre.platform = signers[0];
+    // hre.treasury = signers[0];
     hre.initCount = 0;
+    // const factory = await IHotpotFactory__factory.connect("0x729c10a9956f98d7068498f44bcb026ddc76e951", signers[0]);
+    // hre.factory = factory;
     hre.expToken = async (mintRate = 100, burnRate = 100, is721 = false, isSbt = false) =>
         await initFactory(hre, "Exp", mintRate, burnRate, is721, isSbt);
     hre.sqrtToken = async (mintRate = 100, burnRate = 100, is721 = false, isSbt = false) =>
@@ -53,12 +58,20 @@ async function initFactory(hre: any, type, mintRate, burnRate, is721, isSbt) {
     const mainType = is721 ? defines.ERC721Type : defines.ERC20Type;
     if (!hre.factory) {
         let hotpotFactoryContract = "HotpotTokenFactory";
+        let govLib = await hre.ethers.getContractFactory("GovernorLib");
+        let govAddr = await govLib.deploy();
+        const HotpotFactory = await hre.ethers.getContractFactory(hotpotFactoryContract, {
+            libraries: {
+                GovernorLib: govAddr.address,
+            },
+        });
         const hotpotToken = await hre.ethers.getContractFactory(ERC20Contract);
         const hotpot = await hotpotToken.deploy();
         const erc721token = await hre.ethers.getContractFactory(ERC721Contract);
         const erc721 = await erc721token.deploy();
-        const HotpotFactory = await hre.ethers.getContractFactory(hotpotFactoryContract);
-        const factory = await upgrades.deployProxy(HotpotFactory, [hre.platform.address, hre.platform.address]);
+        const factory = await upgrades.deployProxy(HotpotFactory, [hre.platform.address, hre.platform.address], {
+            unsafeAllowLinkedLibraries: true,
+        });
         hre.factory = factory;
         const expToken = await hre.ethers.getContractFactory(expTokenContract);
         const exp = await expToken.deploy();

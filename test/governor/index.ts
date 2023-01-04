@@ -32,9 +32,9 @@ describe(" Governor 模块测试", () => {
             await erc20.connect(admin).transfer(actor.address, amount);
             await erc20.connect(actor).delegate(actor.address);
         }
+        const token = await hre.linearToken();
         const factoryAddr = hre.factory.address;
         let factory = HotpotTokenFactory__factory.connect(factoryAddr, admin);
-        const token = await hre.linearToken();
         const tokenAbi = await HotpotERC20Mixed__factory.connect(token.address, admin);
         const stgContract = await ethers.getContractFactory("BalanceOfStrategy");
         const stg = await stgContract.deploy();
@@ -49,11 +49,10 @@ describe(" Governor 模块测试", () => {
             quorumVotes: 10,
             timelockDelay: 0,
         });
-        const govAddr = await tokenAbi.getProjectAdmin();
-        const governor = Governor__factory.connect(govAddr, admin);
-        const gnverorAdmin = await governor.admin();
-        const timelock = Timelock__factory.connect(gnverorAdmin, admin);
-        expect((await timelock.admin()) == govAddr, "The administrator of timelock should be the governor");
+        const timelockAddr = await tokenAbi.getProjectAdmin();
+        const timelock = Timelock__factory.connect(timelockAddr, admin);
+        const timelockAdmin = await timelock.admin();
+        const governor = Governor__factory.connect(timelockAdmin, admin);
         let trivialProposal, targets, values, signatures, callDatas;
         let proposalBlock;
         targets = [admin.address];

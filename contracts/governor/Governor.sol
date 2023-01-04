@@ -199,7 +199,7 @@ contract Governor is GovernorBravoDelegateStorageV2, GovernorBravoEvents {
         Proposal storage proposal = proposals[proposalId];
         proposal.executed = true;
         for (uint256 i = 0; i < _targets[proposalId].length; i++) {
-            timelock.executeTransaction{value: _values[proposalId][i]}(
+            timelock.executeTransaction(
                 _targets[proposalId][i],
                 _values[proposalId][i],
                 _signatures[proposalId][i],

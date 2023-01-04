@@ -145,4 +145,8 @@ contract Timelock is TimelockInterface {
         // solium-disable-next-line security/no-block-members
         return block.timestamp;
     }
+
+    receive() external payable {}
+
+    fallback() external payable {}
 }
