@@ -11,7 +11,7 @@ const round = 10;
 
 describe("HotpotToken 大规模铸造销毁测试", async () => {
     describe("Linear Mixed Hotpot Token", async () => {
-        it("验证 mint 最小铸造", async () => {
+        it("验证 线性erc20token mint 最小铸造", async () => {
             let signers = await ethers.getSigners();
             let buyer = signers[Id.Buyer];
             let treasury = signers[Id.Treasury];

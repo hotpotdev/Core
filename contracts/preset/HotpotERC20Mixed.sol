@@ -211,8 +211,8 @@ contract HotpotERC20Mixed is HotpotBase, ERC20VotesUpgradeable, IHotpotSwap, Ree
             tokenAmountWant,
             _getCurrentSupply() + tokenAmountWant
         );
-        nativeTokenPaidAmount *= 10000;
-        nativeTokenPaidAmount /= (10000 - _projectMintTax - _platformMintTax);
+        nativeTokenPaidAmount *= MAX_TAX_RATE_DENOMINATOR;
+        nativeTokenPaidAmount /= (MAX_TAX_RATE_DENOMINATOR - _projectMintTax - _platformMintTax);
         projectFee = (nativeTokenPaidAmount * _projectMintTax) / MAX_TAX_RATE_DENOMINATOR;
         platformFee = (nativeTokenPaidAmount * _platformMintTax) / MAX_TAX_RATE_DENOMINATOR;
         return (daoTokenAmount, nativeTokenPaidAmount, platformFee, projectFee);

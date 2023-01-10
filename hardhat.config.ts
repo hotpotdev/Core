@@ -91,10 +91,10 @@ async function initFactory(hre: any, type, mintRate, burnRate, is721, isSbt) {
     hre.burnRate = burnRate;
     const data1 = hre.ethers.utils.defaultAbiCoder.encode(
         ["uint256", "uint256"],
-        [hre.ethers.BigNumber.from("100"), hre.ethers.BigNumber.from("0")]
+        [defines.Unit.Ether.mul(100), 0]
     );
-    const data2 = hre.ethers.utils.defaultAbiCoder.encode(["uint256", "uint256"], [14, 2e6]);
-    const data3 = hre.ethers.utils.defaultAbiCoder.encode(["uint256"], [1]);
+    const data2 = hre.ethers.utils.defaultAbiCoder.encode(["uint256", "uint256"], [defines.Unit.Ether.mul(14), defines.Unit.Ether.mul(2e6)]);
+    const data3 = hre.ethers.utils.defaultAbiCoder.encode(["uint256"], [defines.Unit.Ether]);
     switch (type) {
         case "Exp":
             await hre.factory.connect(hre.platform).deployToken({

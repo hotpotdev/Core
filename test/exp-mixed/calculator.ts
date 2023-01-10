@@ -35,10 +35,10 @@ describe("验证 Bonding Curve Swap 计算函数 算子测试", async () => {
                 let price = await curveAbi.price(ans.daoTokenAmount, data);
                 let ans3 = await curveAbi.calculateBurnAmountFromBondingCurve(GWei, ans.daoTokenAmount.add(GWei), data);
                 console.debug(
-                    "铸造消耗eth",
-                    ethers.utils.formatEther(nativeAsset),
                     "生成erc20",
                     ethers.utils.formatEther(ans.daoTokenAmount),
+                    "铸造消耗eth",
+                    ethers.utils.formatEther(nativeAsset),
                     "销毁退还eth",
                     ethers.utils.formatEther(ans2.nativeTokenAmount),
                     "价格eth/erc20",
@@ -80,10 +80,10 @@ describe("验证 Bonding Curve Swap 计算函数 算子测试", async () => {
                 let ans2 = await curveAbi.calculateBurnAmountFromBondingCurve(ans.daoTokenAmount, ans.daoTokenAmount, data);
                 let price = await curveAbi.price(ans.daoTokenAmount, data);
                 console.debug(
-                    "铸造消耗eth",
-                    ethers.utils.formatEther(nativeAsset),
                     "生成erc20",
                     ethers.utils.formatEther(ans2[0]),
+                    "铸造消耗eth",
+                    ethers.utils.formatEther(nativeAsset),
                     "销毁退还eth",
                     ethers.utils.formatEther(ans2.nativeTokenAmount),
                     "价格eth/erc20",

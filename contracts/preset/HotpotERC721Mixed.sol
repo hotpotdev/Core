@@ -61,6 +61,10 @@ contract HotpotERC721Mixed is HotpotBase, ERC721VotesUpgradeable, IHotpotSwap, R
         return _getTotalSupply();
     }
 
+    function totalSupply() public view returns (uint256) {
+        return _getCurrentSupply();
+    }
+
     function mint(address to, uint256 minDaoTokenRecievedAmount) public payable whenNotPaused nonReentrant returns (uint256) {
         require(to != address(0), "can not mint to address(0)");
         // minDaoTokenRecievedAmount是为了用户购买的时候，处理滑点，防止在极端情况获得远少于期望的代币
@@ -129,8 +133,8 @@ contract HotpotERC721Mixed is HotpotBase, ERC721VotesUpgradeable, IHotpotSwap, R
             tokenAmountWant * 1e18,
             (_getCurrentSupply() + tokenAmountWant) * 1e18
         );
-        nativeTokenPaidAmount *= 10000;
-        nativeTokenPaidAmount /= (10000 - _projectMintTax - _platformMintTax);
+        nativeTokenPaidAmount *= MAX_TAX_RATE_DENOMINATOR;
+        nativeTokenPaidAmount /= (MAX_TAX_RATE_DENOMINATOR - _projectMintTax - _platformMintTax);
         projectFee = (nativeTokenPaidAmount * _projectMintTax) / MAX_TAX_RATE_DENOMINATOR;
         platformFee = (nativeTokenPaidAmount * _platformMintTax) / MAX_TAX_RATE_DENOMINATOR;
         return (daoTokenAmount / 1e18, nativeTokenPaidAmount, platformFee, projectFee);
