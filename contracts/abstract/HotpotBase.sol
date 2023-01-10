@@ -72,16 +72,16 @@ abstract contract HotpotBase is HotpotMetadata, SwapCurve, AccessControlUpgradea
 
     function setProjectAdmin(address newProjectAdmin) public onlyRole(PROJECT_ADMIN_ROLE) {
         require(newProjectAdmin != address(0), "Invalid Address");
-        _grantRole(PROJECT_ADMIN_ROLE, newProjectAdmin);
         _revokeRole(PROJECT_ADMIN_ROLE, _projectAdmin);
+        _grantRole(PROJECT_ADMIN_ROLE, newProjectAdmin);
         _projectAdmin = newProjectAdmin;
         emit LogProjectAdminChanged(newProjectAdmin);
     }
 
     function setGov(address gov) public onlyRole(FACTORY_ROLE) {
         require(gov != address(0), "Invalid Address");
-        _grantRole(PROJECT_ADMIN_ROLE, gov);
         _revokeRole(PROJECT_ADMIN_ROLE, _projectAdmin);
+        _grantRole(PROJECT_ADMIN_ROLE, gov);
         _projectAdmin = gov;
         emit LogProjectAdminChanged(gov);
     }
