@@ -197,4 +197,5 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
         _proxyAdmin.upgradeAndCall{value: msg.value}(TransparentUpgradeableProxy(payable(proxyAddress)), impl, data);
         emit LogTokenImplementUpgraded(proxyAddress, tokensType[proxyAddress], _implementsMap[tokensType[proxyAddress]]);
     }
+    
 }
