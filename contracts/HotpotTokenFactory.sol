@@ -141,8 +141,8 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
 
     function setPlatformAdmin(address newPlatformAdmin) public onlyRole(PLATFORM_ADMIN_ROLE) {
         require(newPlatformAdmin != address(0), "Invalid Address");
-        _grantRole(PLATFORM_ADMIN_ROLE, newPlatformAdmin);
         _revokeRole(PLATFORM_ADMIN_ROLE, _platformAdmin);
+        _grantRole(PLATFORM_ADMIN_ROLE, newPlatformAdmin);
         _platformAdmin = newPlatformAdmin;
         emit LogPlatformAdminChanged(newPlatformAdmin);
     }
