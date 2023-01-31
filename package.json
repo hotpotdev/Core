@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "hardhat test --grep '验证'",
-    "solc-abi": "solcjs --abi --include-path node_modules/ --base-path . contracts\\HotpotTokenFactory.sol -o ./abi/"
+    "solc-abi": "solcjs --abi --include-path node_modules/ --base-path . contracts\\HotpotTokenFactory.sol -o ./abi/",
+    "docgen": "hardhat docgen"
   },
   "keywords": [],
   "author": "",
@@ -41,6 +42,7 @@
     "solc": "^0.8.17",
     "solhint": "^3.3.7",
     "solidity-coverage": "^0.7.22",
+    "solidity-docgen": "^0.6.0-beta.34",
     "ts-node": "^10.9.1",
     "typechain": "^5.2.0",
     "typescript": "^4.9.3"

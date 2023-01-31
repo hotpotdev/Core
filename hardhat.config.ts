@@ -8,6 +8,7 @@ import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 import "@openzeppelin/hardhat-upgrades";
+import 'solidity-docgen';
 import { IHotpotFactory__factory } from "./typechain";
 
 dotenv.config();
@@ -146,7 +147,10 @@ async function initFactory(hre: any, type, mintRate, burnRate, is721, isSbt) {
     return await hre.ethers.getContractAt(is721 ? ERC721Contract : ERC20Contract, addr);
 }
 
-const config: HardhatUserConfig = {
+const config: HardhatUserConfig  = {
+    docgen: { 
+        outputDir: 'docs'
+    },
     solidity: {
         version: "0.8.17",
         settings: {
