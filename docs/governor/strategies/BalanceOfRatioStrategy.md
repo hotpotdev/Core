@@ -1,0 +1,16 @@
+# Solidity API
+
+## BalanceOfRatioStrategy
+
+### name
+
+```solidity
+function name() external pure returns (string)
+```
+
+### getThreshold
+
+```solidity
+function getThreshold(address ref, uint256 thresholdParameter, uint256 blockNumber) external view returns (uint256)
+```
+

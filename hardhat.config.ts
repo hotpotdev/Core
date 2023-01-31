@@ -149,7 +149,8 @@ async function initFactory(hre: any, type, mintRate, burnRate, is721, isSbt) {
 
 const config: HardhatUserConfig  = {
     docgen: { 
-        outputDir: 'docs'
+        outputDir: 'docs',
+        pages: "files"
     },
     solidity: {
         version: "0.8.17",
