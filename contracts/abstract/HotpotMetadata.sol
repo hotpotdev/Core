@@ -2,8 +2,9 @@
 // OpenZeppelin Contracts (last updated v4.5.0) (token/ERC20/ERC20.sol)
 
 pragma solidity ^0.8.0;
+import "../interfaces/IHotpotToken.sol";
 
-contract HotpotMetadata {
+abstract contract HotpotMetadata is IHotpotToken {
     string private _meta;
 
     function _setMetadata(string memory uri) internal {

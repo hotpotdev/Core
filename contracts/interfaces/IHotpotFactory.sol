@@ -16,10 +16,11 @@ interface IHotpotFactory {
         uint256 projectMintTax;
         uint256 projectBurnTax;
         bool isSbt;
+        address raisingTokenAddr;
         bytes data;
     }
 
-    function deployToken(TokenInfo calldata token) external payable;
+    function deployToken(TokenInfo calldata token, uint256 mintfirstAmount) external payable;
 
     function createGovernorForToken(address proxyAddr, GovernorLib.GovInfo calldata token) external;
 

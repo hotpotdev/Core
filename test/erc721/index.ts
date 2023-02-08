@@ -16,14 +16,13 @@ const b = 2e6;
 const data = hre.ethers.utils.defaultAbiCoder.encode(["uint256", "uint256"], [a, b]);
 describe("ERC721", async () => {
     describe("单例测试测试", async () => {
-
         it("验证 mint 最小铸造", async () => {
             let signers = await ethers.getSigners();
             let buyer = signers[Id.Buyer];
             let treasury = signers[Id.Treasury];
             let platform = signers[Id.Platform];
 
-            const token = await hre.expToken(100, 100, true);
+            const token = await hre.linearToken(100, 100, true);
             const hotpotTokenAbi = await HotpotERC721Mixed__factory.connect(token.address, buyer);
 
             await network.provider.send("hardhat_setBalance", [treasury.address, "0x0"]);
@@ -33,24 +32,22 @@ describe("ERC721", async () => {
                 Ether.mul(100000000)._hex.replace(/0x0+/, "0x"),
             ]);
             const getNativeToken = async (amount) => {
-                const [_, nativeTokenAmount, fee1, fee2] = await hotpotTokenAbi.estimateMintNeed(amount);
-                return nativeTokenAmount;
+                const [_, amountReturn, fee1, fee2] = await hotpotTokenAbi.estimateMintNeed(amount);
+                return amountReturn;
             };
             const native = await getNativeToken(1);
             await expect(
                 hotpotTokenAbi
                     .connect(buyer)
-                    .mint(buyer.address, (await hotpotTokenAbi.estimateMint(native)).daoTokenAmount.add(1), {
+                    .mint(buyer.address, native, (await hotpotTokenAbi.estimateMint(native)).receivedAmount.add(1), {
                         value: native,
                     }),
                 "小于最小铸造期望时 铸造失败"
             ).to.reverted;
-            // console.log(await hotpotTokenAbi.estimateMint(native))
-            // console.log(await hotpotTokenAbi.estimateMint(native.add(1e9)))
             await expect(
                 hotpotTokenAbi
                     .connect(buyer)
-                    .mint(buyer.address, (await hotpotTokenAbi.estimateMint(native)).daoTokenAmount, {
+                    .mint(buyer.address, native, (await hotpotTokenAbi.estimateMint(native)).receivedAmount, {
                         value: native.add(1e9),
                     }),
                 "大于最小铸造期望时 铸造成功"
@@ -58,11 +55,11 @@ describe("ERC721", async () => {
             let erc721Balance = await hotpotTokenAbi.balanceOf(buyer.address);
             let estimiteBurn = await hotpotTokenAbi.estimateBurn(erc721Balance);
             await expect(
-                hotpotTokenAbi.connect(buyer).burn(buyer.address, erc721Balance, estimiteBurn.nativeTokenAmount.add(1)),
+                hotpotTokenAbi.connect(buyer).burn(buyer.address, erc721Balance, estimiteBurn.amountReturn.add(1)),
                 "小于最小销毁期望payback时 销毁失败"
             ).to.reverted;
             await expect(
-                hotpotTokenAbi.connect(buyer).burn(buyer.address, 0, estimiteBurn.nativeTokenAmount),
+                hotpotTokenAbi.connect(buyer).burn(buyer.address, 0, estimiteBurn.amountReturn),
                 "大于最小销毁期望payback时 销毁成功"
             ).not.reverted;
         });
@@ -71,7 +68,7 @@ describe("ERC721", async () => {
             let buyer = signers[Id.Buyer];
             let treasury = signers[Id.Treasury];
             let platform = signers[Id.Platform];
-            const token = await hre.expToken(100, 100, true);
+            const token = await hre.linearToken(100, 100, true);
             const hotpotTokenAbi = await HotpotERC721Mixed__factory.connect(token.address, buyer);
 
             await network.provider.send("hardhat_setBalance", [treasury.address, "0x0"]);
@@ -81,13 +78,13 @@ describe("ERC721", async () => {
                 Ether.mul(100000000)._hex.replace(/0x0+/, "0x"),
             ]);
 
-            const getNativeToken = async (amount) => {
-                const [_, nativeTokenAmount, fee1, fee2] = await hotpotTokenAbi.estimateMintNeed(amount);
-                return nativeTokenAmount.add(fee1).add(fee2);
-            };
-            const native = await getNativeToken(1);
             for (let i = 0; i < round; i++) {
-                let mintTx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: native });
+                const getNativeToken = async (amount) => {
+                    const [_, amountReturn, fee1, fee2] = await hotpotTokenAbi.estimateMintNeed(amount);
+                    return amountReturn.add(fee1).add(fee2);
+                };
+                const native = await getNativeToken(1);
+                let mintTx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, native, 0, { value: native });
                 await mintTx1.wait();
                 let platformBalance = await platform.getBalance();
                 let treasuryBalance = await treasury.getBalance();
@@ -112,17 +109,17 @@ describe("ERC721", async () => {
                     erc721Balance.toNumber(),
                     "BUYER eth 可兑取",
                     ethers.utils.formatEther(
-                        estimateBurn.nativeTokenAmount.add(estimateBurn.platformFee.add(estimateBurn.projectFee))
+                        estimateBurn.amountReturn.add(estimateBurn.platformFee.add(estimateBurn.projectFee))
                     ),
                     "误差损失 eth wei",
                     contractAsset
-                        .sub(estimateBurn.nativeTokenAmount.add(estimateBurn.platformFee.add(estimateBurn.projectFee)))
+                        .sub(estimateBurn.amountReturn.add(estimateBurn.platformFee.add(estimateBurn.projectFee)))
                         .toString(),
                     "\n"
                 );
                 // expect(
                 //     contractAsset.sub(
-                //         estimateBurn.nativeTokenAmount.add(estimateBurn.platformFee.add(estimateBurn.projectFee))
+                //         estimateBurn.amountReturn.add(estimateBurn.platformFee.add(estimateBurn.projectFee))
                 //     ),
                 //     "误差损失当线性增长"
                 // ).to.lt(Wei.mul(1000 * (round + 2)));
@@ -144,12 +141,12 @@ describe("ERC721", async () => {
                 Ether.mul(100000000)._hex.replace(/0x0+/, "0x"),
             ]);
             const getNativeToken = async (amount) => {
-                const [_, nativeTokenAmount, fee1, fee2] = await hotpotTokenAbi.estimateMintNeed(amount);
-                return nativeTokenAmount.add(fee1).add(fee2);
+                const [_, amountReturn, fee1, fee2] = await hotpotTokenAbi.estimateMintNeed(amount);
+                return amountReturn.add(fee1).add(fee2);
             };
             let tokenId = 10;
             const native = await getNativeToken(tokenId);
-            let mintTx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: native });
+            let mintTx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, native, 0, { value: native });
             await mintTx1.wait();
             let totalErc721Balance = await hotpotTokenAbi.balanceOf(buyer.address);
             for (let i = 0; i < round; i++) {
@@ -176,17 +173,17 @@ describe("ERC721", async () => {
                     erc721Balance.toNumber(),
                     "BUYER eth 可兑取",
                     ethers.utils.formatEther(
-                        estimateBurn.nativeTokenAmount.add(estimateBurn.platformFee.add(estimateBurn.projectFee))
+                        estimateBurn.amountReturn.add(estimateBurn.platformFee.add(estimateBurn.projectFee))
                     ),
                     "误差损失 eth wei",
                     contractAsset
-                        .sub(estimateBurn.nativeTokenAmount.add(estimateBurn.platformFee.add(estimateBurn.projectFee)))
+                        .sub(estimateBurn.amountReturn.add(estimateBurn.platformFee.add(estimateBurn.projectFee)))
                         .toString(),
                     "\n"
                 );
                 // expect(
                 //     contractAsset.sub(
-                //         estimateBurn.nativeTokenAmount.add(estimateBurn.platformFee.add(estimateBurn.projectFee))
+                //         estimateBurn.amountReturn.add(estimateBurn.platformFee.add(estimateBurn.projectFee))
                 //     ),
                 //     "误差损失当线性增长"
                 // ).to.lt(Wei.mul(1000 * (round + 2)));
@@ -221,39 +218,38 @@ describe("ERC721", async () => {
                 Ether.mul(100000000)._hex.replace(/0x0+/, "0x"),
             ]);
             const getNativeToken = async (amount) => {
-                const [_, nativeTokenAmount, fee1, fee2] = await hotpotTokenAbi.estimateMintNeed(amount);
-                return nativeTokenAmount;
+                const [_, amountReturn, fee1, fee2] = await hotpotTokenAbi.estimateMintNeed(amount);
+                return amountReturn;
             };
             for (let i = 0; i < round; i++) {
                 // buyer 1 只买不卖 1~99 ether
                 // buyer 3 买了随机转给 buyer 2
-                let mintTx1 = await hotpotTokenAbi
-                    .connect(buyer1)
-                    .mint(buyer1.address, 0, { value: await getNativeToken(Math.floor(Math.random() * 0.0) + 1) });
+                const amount1 = await getNativeToken(Math.floor(Math.random() * 0.0) + 1);
+                let mintTx1 = await hotpotTokenAbi.connect(buyer1).mint(buyer1.address, amount1, 0, { value: amount1 });
                 await mintTx1.wait();
                 // buyer 2 即买又卖一部分
-                let mintTx2 = await hotpotTokenAbi
-                    .connect(buyer2)
-                    .mint(buyer2.address, 0, { value: await getNativeToken(Math.floor(Math.random() * 0.0) + 1) });
+                const amount2 = await getNativeToken(Math.floor(Math.random() * 0.0) + 1);
+                let mintTx2 = await hotpotTokenAbi.connect(buyer2).mint(buyer2.address, amount2, 0, { value: amount2 });
                 await mintTx2.wait();
                 let buyer2Erc721 = await hotpotTokenAbi.balanceOf(buyer2.address);
                 // buyer 3 随机买大单，并随机往 buyer 2，buyer 3 中转入
+                const amount3 = await getNativeToken(Math.floor(Math.random() * 0.0) + 1);
                 if (Math.random() < 0.5) {
-                    let mintTx3 = await hotpotTokenAbi
-                        .connect(buyer3)
-                        .mint(buyer2.address, 0, { value: await getNativeToken(Math.floor(Math.random() * 0.0) + 1) });
+                    let mintTx3 = await hotpotTokenAbi.connect(buyer3).mint(buyer2.address, amount3, 0, { value: amount3 });
                     await mintTx3.wait();
                 }
                 // 会触发随机的抛出动作
                 if (Math.random() < 0.1) {
                     let contractTotalSupply = await hotpotTokenAbi.totalSupply();
-                    for (let i = 0; contractTotalSupply.gt(i) ; i++) {
-                        if(Math.random()>0.1) continue
+                    for (let i = 0; contractTotalSupply.gt(i); i++) {
+                        if (Math.random() > 0.1) continue;
                         else {
-                            let owner = await hotpotTokenAbi.ownerOf(i)
-                            if (owner =='0x0000000000000000000000000000000000000000') continue
-                            let burnTx = await hotpotTokenAbi.connect(signers.find((e)=>e.address==owner)).burn(owner,i,0)
-                            await burnTx.wait()
+                            let owner = await hotpotTokenAbi.ownerOf(i);
+                            if (owner == "0x0000000000000000000000000000000000000000") continue;
+                            let burnTx = await hotpotTokenAbi
+                                .connect(signers.find((e) => e.address == owner))
+                                .burn(owner, i, 0);
+                            await burnTx.wait();
                         }
                     }
                 }
@@ -280,11 +276,11 @@ describe("ERC721", async () => {
                     ethers.utils.formatEther(contractAsset),
                     "eth 可兑取",
                     ethers.utils.formatEther(
-                        estimateBurn.nativeTokenAmount.add(estimateBurn.platformFee.add(estimateBurn.projectFee))
+                        estimateBurn.amountReturn.add(estimateBurn.platformFee.add(estimateBurn.projectFee))
                     ),
                     "误差损失 eth wei",
                     contractAsset
-                        .sub(estimateBurn.nativeTokenAmount.add(estimateBurn.platformFee.add(estimateBurn.projectFee)))
+                        .sub(estimateBurn.amountReturn.add(estimateBurn.platformFee.add(estimateBurn.projectFee)))
                         .toString(),
                     "价格eth/erc721",
                     ethers.utils.formatEther(price),
@@ -306,9 +302,7 @@ describe("ERC721", async () => {
                     "\n"
                 );
                 expect(
-                    contractAsset.sub(
-                        estimateBurn.nativeTokenAmount.add(estimateBurn.platformFee.add(estimateBurn.projectFee))
-                    ),
+                    contractAsset.sub(estimateBurn.amountReturn.add(estimateBurn.platformFee.add(estimateBurn.projectFee))),
                     "误差损失当线性增长"
                 ).to.lt(Wei.mul(1000 * (round + 2)));
             }

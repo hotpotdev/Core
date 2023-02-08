@@ -45,7 +45,7 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
         _proxyAdmin = new ProxyAdmin();
     }
 
-    function deployToken(TokenInfo calldata token) public payable {
+    function deployToken(TokenInfo calldata token, uint256 mintfirstAmount) public payable {
         bytes memory call = abi.encodeWithSelector(
             IHotpotToken.initialize.selector,
             getBondingCurveImplement(token.bondingCurveType),
@@ -57,6 +57,7 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
             token.projectMintTax,
             token.projectBurnTax,
             token.isSbt,
+            token.raisingTokenAddr,
             token.data,
             address(this)
         );
@@ -69,9 +70,17 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
         tokens[tokensLength] = address(proxy);
         tokensLength++;
         tokensType[address(proxy)] = token.tokenType;
-        if (msg.value > 0) {
+        if (mintfirstAmount > 0) {
             (uint256 minReceive, , , ) = IHotpotToken(address(proxy)).estimateMint(msg.value);
-            IHotpotToken(address(proxy)).mint{value: msg.value}(msg.sender, minReceive);
+            if (token.raisingTokenAddr != address(0)) {
+                IERC20(token.raisingTokenAddr).transferFrom(msg.sender, address(this), mintfirstAmount);
+                IERC20(token.raisingTokenAddr).approve(address(proxy), mintfirstAmount);
+            }
+            IHotpotToken(address(proxy)).mint{value: token.raisingTokenAddr == address(0) ? mintfirstAmount : 0}(
+                msg.sender,
+                mintfirstAmount,
+                minReceive
+            );
         }
         emit LogTokenDeployed(token.tokenType, token.bondingCurveType, tokenId, address(proxy));
     }
@@ -197,5 +206,4 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
         _proxyAdmin.upgradeAndCall{value: msg.value}(TransparentUpgradeableProxy(payable(proxyAddress)), impl, data);
         emit LogTokenImplementUpgraded(proxyAddress, tokensType[proxyAddress], _implementsMap[tokensType[proxyAddress]]);
     }
-    
 }

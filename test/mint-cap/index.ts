@@ -23,11 +23,11 @@ describe("验证 Mint Cap 铸造限制", async () => {
             let price = await hotpotTokenAbi.price();
             // mint 1 eth
             await expect(
-                hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: price }),
+                hotpotTokenAbi.connect(buyer).mint(buyer.address, price, 0, { value: price }),
                 "铸造量少于 mintCap 时需要铸造成功"
             ).not.reverted;
             await expect(
-                hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: price.mul(100000) }),
+                hotpotTokenAbi.connect(buyer).mint(buyer.address, price.mul(100000), 0, { value: price.mul(100000) }),
                 "铸造量大于 mintCap 时不会铸造失败"
             ).not.reverted;
         });

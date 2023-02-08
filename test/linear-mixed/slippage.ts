@@ -30,7 +30,9 @@ describe("HotpotToken 滑点测试", async () => {
             const buyStep = 1;
             const testOne = async () => {
                 let beforeEstimate = await hotpotTokenAbi.estimateMint(Ether.mul(buyStep));
-                let mintTx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: Ether.mul(buyStep) });
+                let mintTx1 = await hotpotTokenAbi
+                    .connect(buyer)
+                    .mint(buyer.address, Ether.mul(buyStep), 0, { value: Ether.mul(buyStep) });
                 await mintTx1.wait();
                 let currentSupply = await hotpotTokenAbi.totalSupply();
                 let afterEstimate = await hotpotTokenAbi.estimateMint(Ether.mul(buyStep));
@@ -38,7 +40,7 @@ describe("HotpotToken 滑点测试", async () => {
                     "[",
                     ethers.utils.formatEther(currentSupply),
                     ",",
-                    afterEstimate.daoTokenAmount.mul(10000).div(beforeEstimate.daoTokenAmount).toNumber() / 10000,
+                    afterEstimate.receivedAmount.mul(10000).div(beforeEstimate.receivedAmount).toNumber() / 10000,
                     "],"
                 );
             };

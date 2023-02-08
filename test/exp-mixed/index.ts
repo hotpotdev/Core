@@ -36,8 +36,8 @@ describe("指数 Mixed", async () => {
         //             '价格eth/erc20', ethers.utils.formatEther(price), '\n',
         //             'BUYER eth 余额', ethers.utils.formatEther(buyerBalance),
         //             'BUYER erc20 余额', ethers.utils.formatEther(erc20Balance),
-        //             'BUYER eth 可兑取', ethers.utils.formatEther(estimateBurn.nativeTokenAmount.add(estimateBurn.platformFee.add(estimateBurn.projectFee))),
-        //             '误差损失 eth wei', contractAsset.sub(estimateBurn.nativeTokenAmount.add(estimateBurn.platformFee.add(estimateBurn.projectFee))).toString(), '\n',
+        //             'BUYER eth 可兑取', ethers.utils.formatEther(estimateBurn.amountReturn.add(estimateBurn.platformFee.add(estimateBurn.projectFee))),
+        //             '误差损失 eth wei', contractAsset.sub(estimateBurn.amountReturn.add(estimateBurn.platformFee.add(estimateBurn.projectFee))).toString(), '\n',
         //         )
         //     }
         //     // await testOne()
@@ -50,7 +50,7 @@ describe("指数 Mixed", async () => {
         //     // await testOne()
         //     // let tet = ExpMixedBondingSwap__factory.connect(await hotpotTokenAbi.getBondingCurve(),buyer)
         //     // console.log(await tet.BondingCurveType())
-        //     // expect(contractAsset.sub(estimateBurn.nativeTokenAmount.add(estimateBurn.platformFee.add(estimateBurn.projectFee))),'误差损失当线性增长').to.lt(Wei.mul(1000*(round+2)))
+        //     // expect(contractAsset.sub(estimateBurn.amountReturn.add(estimateBurn.platformFee.add(estimateBurn.projectFee))),'误差损失当线性增长').to.lt(Wei.mul(1000*(round+2)))
         // })
     });
 });

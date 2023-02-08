@@ -18,6 +18,7 @@ interface IHotpotToken is IAccessControlUpgradeable {
         uint256 projectMintTax,
         uint256 projectBurnTax,
         bool isSbt,
+        address raisingTokenAddr,
         bytes memory parameters,
         address factory
     ) external;
@@ -36,13 +37,9 @@ interface IHotpotToken is IAccessControlUpgradeable {
 
     function setProjectTaxRate(uint256 projectMintTax, uint256 projectBurnTax) external;
 
-    function platform() external view returns (address);
-
-    function treasury() external view returns (address);
-
-    function cap() external view returns (uint256 cap);
-
     function getFactory() external view returns (address);
+
+    function getRaisingToken() external view returns (address);
 
     function getProjectAdmin() external view returns (address);
 
@@ -54,21 +51,21 @@ interface IHotpotToken is IAccessControlUpgradeable {
 
     function price() external view returns (uint256);
 
-    function mint(address to, uint256 minDaoTokenRecievedAmount) external payable returns (uint256);
+    function mint(address to, uint payAmount, uint minReceive) external payable;
 
     function estimateMint(
-        uint256 nativeTokenPaidAmount
-    ) external view returns (uint256 daoTokenAmount, uint256, uint256 platformFee, uint256 projectFee);
+        uint payAmount
+    ) external view returns (uint receivedAmount, uint paidAmount, uint platformFee, uint projectFee);
 
-    function burn(
-        address to,
-        uint256 daoTokenPaidAmount,
-        uint256 minNativeTokenRecievedAmount
-    ) external payable returns (uint256);
+    function estimateMintNeed(
+        uint tokenAmountWant
+    ) external view returns (uint receivedAmount, uint paidAmount, uint platformFee, uint projectFee);
+
+    function burn(address to, uint payAmount, uint minReceive) external payable;
 
     function estimateBurn(
-        uint256 daoTokenAmount
-    ) external view returns (uint256, uint256 nativeTokenAmount, uint256 platformFee, uint256 projectFee);
+        uint tokenAmount
+    ) external view returns (uint amountNeed, uint amountReturn, uint platformFee, uint projectFee);
 
     function pause() external;
 

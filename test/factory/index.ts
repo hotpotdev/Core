@@ -3,6 +3,7 @@ import { ethers, network } from "hardhat";
 import { defines } from "../../hardhat.config";
 import { ExpMixedBondingSwap__factory, HotpotERC20Mixed__factory, HotpotTokenFactory__factory } from "../../typechain";
 import { solidity } from "ethereum-waffle";
+import { constants } from "ethers";
 
 const hre = require("hardhat");
 const Ether = defines.Unit.Ether;
@@ -42,7 +43,7 @@ describe("Factory 功能 Test", async () => {
         await expect(
             tokenProxy
                 .connect(anyone)
-                ["initialize(address,string,string,string,address,address,uint256,uint256,bool,bytes,address)"](
+                ["initialize(address,string,string,string,address,address,uint256,uint256,bool,address,bytes,address)"](
                     curve.address,
                     "TET2",
                     "TET2",
@@ -52,6 +53,7 @@ describe("Factory 功能 Test", async () => {
                     2000,
                     2000,
                     false,
+                    constants.AddressZero,
                     data2,
                     hre.factory.address
                 ),

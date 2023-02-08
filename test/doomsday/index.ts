@@ -25,7 +25,7 @@ describe("验证 Doomsday 销毁功能", async () => {
             await network.provider.send("hardhat_setBalance", [treasury.address, Ether._hex.replace(/0x0+/, "0x")]);
             await network.provider.send("hardhat_setBalance", [platform.address, Ether._hex.replace(/0x0+/, "0x")]);
 
-            let tx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: Ether.mul(10) });
+            let tx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, Ether.mul(10), 0, { value: Ether.mul(10) });
             await tx1.wait();
 
             expect(await hotpotTokenAbi.doomsday(), "declareDoomsday 前 doomsday 应当为 false").to.false;

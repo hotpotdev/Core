@@ -30,27 +30,39 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
             await expect(
                 hotpotTokenAbi
                     .connect(buyer)
-                    .mint(buyer.address, await (await hotpotTokenAbi.estimateMint(Ether.mul(1000))).daoTokenAmount.add(1), {
-                        value: Ether.mul(1000),
-                    }),
+                    .mint(
+                        buyer.address,
+                        Ether.mul(1000),
+                        await (await hotpotTokenAbi.estimateMint(Ether.mul(1000))).receivedAmount.add(1),
+                        {
+                            value: Ether.mul(1000),
+                        }
+                    ),
                 "小于最小铸造期望时 铸造失败"
             ).to.reverted;
             await expect(
                 hotpotTokenAbi
                     .connect(buyer)
-                    .mint(buyer.address, await (await hotpotTokenAbi.estimateMint(Ether.mul(1000))).daoTokenAmount, {
-                        value: Ether.mul(1000),
-                    }),
+                    .mint(
+                        buyer.address,
+                        Ether.mul(1000),
+                        await (
+                            await hotpotTokenAbi.estimateMint(Ether.mul(1000))
+                        ).receivedAmount,
+                        {
+                            value: Ether.mul(1000),
+                        }
+                    ),
                 "大于最小铸造期望时 铸造成功"
             ).not.reverted;
             let erc20Balance = await hotpotTokenAbi.balanceOf(buyer.address);
             let estimiteBurn = await hotpotTokenAbi.estimateBurn(erc20Balance);
             await expect(
-                hotpotTokenAbi.connect(buyer).burn(buyer.address, erc20Balance, estimiteBurn.nativeTokenAmount.add(1)),
+                hotpotTokenAbi.connect(buyer).burn(buyer.address, erc20Balance, estimiteBurn.amountReturn.add(1)),
                 "小于最小销毁期望payback时 销毁失败"
             ).to.reverted;
             await expect(
-                hotpotTokenAbi.connect(buyer).burn(buyer.address, erc20Balance, estimiteBurn.nativeTokenAmount),
+                hotpotTokenAbi.connect(buyer).burn(buyer.address, erc20Balance, estimiteBurn.amountReturn),
                 "大于最小销毁期望payback时 销毁成功"
             ).not.reverted;
         });
@@ -72,7 +84,9 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
             ]);
 
             for (let i = 0; i < round; i++) {
-                let mintTx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: Ether.mul(1000) });
+                let mintTx1 = await hotpotTokenAbi
+                    .connect(buyer)
+                    .mint(buyer.address, Ether.mul(1000), 0, { value: Ether.mul(1000) });
                 await mintTx1.wait();
                 let platformBalance = await platform.getBalance();
                 let treasuryBalance = await treasury.getBalance();
@@ -97,18 +111,16 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
                     ethers.utils.formatEther(erc20Balance),
                     "BUYER eth 可兑取",
                     ethers.utils.formatEther(
-                        estimateBurn.nativeTokenAmount.add(estimateBurn.platformFee.add(estimateBurn.projectFee))
+                        estimateBurn.amountReturn.add(estimateBurn.platformFee.add(estimateBurn.projectFee))
                     ),
                     "误差损失 eth wei",
                     contractAsset
-                        .sub(estimateBurn.nativeTokenAmount.add(estimateBurn.platformFee.add(estimateBurn.projectFee)))
+                        .sub(estimateBurn.amountReturn.add(estimateBurn.platformFee.add(estimateBurn.projectFee)))
                         .toString(),
                     "\n"
                 );
                 expect(
-                    contractAsset.sub(
-                        estimateBurn.nativeTokenAmount.add(estimateBurn.platformFee.add(estimateBurn.projectFee))
-                    ),
+                    contractAsset.sub(estimateBurn.amountReturn.add(estimateBurn.platformFee.add(estimateBurn.projectFee))),
                     "误差损失当线性增长"
                 ).to.lt(Wei.mul(1000 * (round + 2)));
             }
@@ -129,7 +141,9 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
                 buyer.address,
                 Ether.mul(100000000)._hex.replace(/0x0+/, "0x"),
             ]);
-            let mintTx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: Ether.mul(500000) });
+            let mintTx1 = await hotpotTokenAbi
+                .connect(buyer)
+                .mint(buyer.address, Ether.mul(500000), 0, { value: Ether.mul(500000) });
             await mintTx1.wait();
             let totalErc20Balance = await hotpotTokenAbi.balanceOf(buyer.address);
 
@@ -157,18 +171,16 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
                     ethers.utils.formatEther(erc20Balance),
                     "BUYER eth 可兑取",
                     ethers.utils.formatEther(
-                        estimateBurn.nativeTokenAmount.add(estimateBurn.platformFee.add(estimateBurn.projectFee))
+                        estimateBurn.amountReturn.add(estimateBurn.platformFee.add(estimateBurn.projectFee))
                     ),
                     "误差损失 eth wei",
                     contractAsset
-                        .sub(estimateBurn.nativeTokenAmount.add(estimateBurn.platformFee.add(estimateBurn.projectFee)))
+                        .sub(estimateBurn.amountReturn.add(estimateBurn.platformFee.add(estimateBurn.projectFee)))
                         .toString(),
                     "\n"
                 );
                 expect(
-                    contractAsset.sub(
-                        estimateBurn.nativeTokenAmount.add(estimateBurn.platformFee.add(estimateBurn.projectFee))
-                    ),
+                    contractAsset.sub(estimateBurn.amountReturn.add(estimateBurn.platformFee.add(estimateBurn.projectFee))),
                     "误差损失当线性增长"
                 ).to.lt(Wei.mul(1000 * (round + 2)));
                 let burnTx2 = await hotpotTokenAbi.connect(buyer).burn(buyer.address, totalErc20Balance.div(100), 0);
@@ -205,14 +217,12 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
             for (let i = 0; i < round; i++) {
                 // buyer 1 只买不卖 1~99 ether
                 // buyer 3 买了随机转给 buyer 2
-                let mintTx1 = await hotpotTokenAbi
-                    .connect(buyer1)
-                    .mint(buyer1.address, 0, { value: Ether.mul(Math.floor(Math.random() * 49) + 1) });
+                const amount1 = Ether.mul(Math.floor(Math.random() * 49) + 1);
+                let mintTx1 = await hotpotTokenAbi.connect(buyer1).mint(buyer1.address, amount1, 0, { value: amount1 });
                 await mintTx1.wait();
                 // buyer 2 即买又卖一部分
-                let mintTx2 = await hotpotTokenAbi
-                    .connect(buyer2)
-                    .mint(buyer2.address, 0, { value: Ether.mul(Math.floor(Math.random() * 999) + 1) });
+                const amount2 = Ether.mul(Math.floor(Math.random() * 999) + 1);
+                let mintTx2 = await hotpotTokenAbi.connect(buyer2).mint(buyer2.address, amount2, 0, { value: amount2 });
                 await mintTx2.wait();
                 let buyer2Erc20 = await hotpotTokenAbi.balanceOf(buyer2.address);
                 let burnTx2 = await hotpotTokenAbi
@@ -221,15 +231,12 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
                 await burnTx2.wait();
                 // buyer 3 随机买大单，并随机往 buyer 2，buyer 3 中转入
                 // buyer 3 会触发随机的抛出动作
+                const amount3 = Ether.mul(Math.floor(Math.random() * 900) + 100);
                 if (Math.random() < 0.5) {
-                    let mintTx3 = await hotpotTokenAbi
-                        .connect(buyer3)
-                        .mint(buyer2.address, 0, { value: Ether.mul(Math.floor(Math.random() * 900) + 100) });
+                    let mintTx3 = await hotpotTokenAbi.connect(buyer3).mint(buyer2.address, amount3, 0, { value: amount3 });
                     await mintTx3.wait();
                 } else {
-                    let mintTx3 = await hotpotTokenAbi
-                        .connect(buyer3)
-                        .mint(buyer3.address, 0, { value: Ether.mul(Math.floor(Math.random() * 900) + 100) });
+                    let mintTx3 = await hotpotTokenAbi.connect(buyer3).mint(buyer3.address, amount3, 0, { value: amount3 });
                     await mintTx3.wait();
                 }
                 if (Math.random() < 0.1) {
@@ -264,11 +271,11 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
                     ethers.utils.formatEther(contractAsset),
                     "eth 可兑取",
                     ethers.utils.formatEther(
-                        estimateBurn.nativeTokenAmount.add(estimateBurn.platformFee.add(estimateBurn.projectFee))
+                        estimateBurn.amountReturn.add(estimateBurn.platformFee.add(estimateBurn.projectFee))
                     ),
                     "误差损失 eth wei",
                     contractAsset
-                        .sub(estimateBurn.nativeTokenAmount.add(estimateBurn.platformFee.add(estimateBurn.projectFee)))
+                        .sub(estimateBurn.amountReturn.add(estimateBurn.platformFee.add(estimateBurn.projectFee)))
                         .toString(),
                     "价格eth/erc20",
                     ethers.utils.formatEther(price),
@@ -290,9 +297,7 @@ describe("HotpotToken 大规模铸造销毁测试", async () => {
                     "\n"
                 );
                 expect(
-                    contractAsset.sub(
-                        estimateBurn.nativeTokenAmount.add(estimateBurn.platformFee.add(estimateBurn.projectFee))
-                    ),
+                    contractAsset.sub(estimateBurn.amountReturn.add(estimateBurn.platformFee.add(estimateBurn.projectFee))),
                     "误差损失当线性增长"
                 ).to.lt(Wei.mul(1000 * (round + 2)));
             }

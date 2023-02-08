@@ -20,7 +20,7 @@ describe("验证 Gas Fee 的收取", async () => {
             const hotpotTokenAbi = await HotpotERC20Mixed__factory.connect(token.address, buyer);
             // mint 1 eth
             await network.provider.send("hardhat_setBalance", [treasury.address, "0x0"]);
-            let mintTx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: Ether });
+            let mintTx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, Ether, 0, { value: Ether });
             await mintTx1.wait();
             let balance2 = await treasury.getBalance();
             console.log(
@@ -60,7 +60,7 @@ describe("验证 Gas Fee 的收取", async () => {
             const hotpotTokenAbi = await HotpotERC20Mixed__factory.connect(token.address, buyer);
             // mint 1 eth
             await network.provider.send("hardhat_setBalance", [platform.address, "0x0"]);
-            let mintTx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: Ether });
+            let mintTx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, Ether, 0, { value: Ether });
             await mintTx1.wait();
             let balance2 = await platform.getBalance();
             console.log(
@@ -96,7 +96,7 @@ describe("验证 Gas Fee 的收取", async () => {
             await setTax1.wait();
             // mint 1 eth
             await network.provider.send("hardhat_setBalance", [platform.address, "0x0"]);
-            let mintTx3 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: Ether });
+            let mintTx3 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, Ether, 0, { value: Ether });
             await mintTx3.wait();
             let balance7 = await platform.getBalance();
             console.log(

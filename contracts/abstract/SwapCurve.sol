@@ -21,14 +21,14 @@ abstract contract SwapCurve {
     function _calculateMintAmountFromBondingCurve(
         uint256 tokens,
         uint256 totalSupply
-    ) internal view returns (uint256, uint256) {
+    ) internal view virtual returns (uint256, uint256) {
         return _coinMaker.calculateMintAmountFromBondingCurve(tokens, totalSupply, _bondingCurveParameters);
     }
 
     function _calculateBurnAmountFromBondingCurve(
         uint256 tokens,
         uint256 totalSupply
-    ) internal view returns (uint256, uint256) {
+    ) internal view virtual returns (uint256, uint256) {
         return _coinMaker.calculateBurnAmountFromBondingCurve(tokens, totalSupply, _bondingCurveParameters);
     }
 

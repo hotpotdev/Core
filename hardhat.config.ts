@@ -1,14 +1,14 @@
 import * as dotenv from "dotenv";
 
 import { extendEnvironment, HardhatUserConfig, task } from "hardhat/config";
-import { ethers } from "ethers";
+import { constants, ethers } from "ethers";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 import "@openzeppelin/hardhat-upgrades";
-import 'solidity-docgen';
+import "solidity-docgen";
 import { IHotpotFactory__factory } from "./typechain";
 
 dotenv.config();
@@ -32,22 +32,36 @@ extendEnvironment(async (hre: any) => {
     hre.initCount = 0;
     // const factory = await IHotpotFactory__factory.connect("0x729c10a9956f98d7068498f44bcb026ddc76e951", signers[0]);
     // hre.factory = factory;
-    hre.expToken = async (mintRate = 100, burnRate = 100, is721 = false, isSbt = false) =>
-        await initFactory(hre, "Exp", mintRate, burnRate, is721, isSbt);
-    hre.sqrtToken = async (mintRate = 100, burnRate = 100, is721 = false, isSbt = false) =>
-        await initFactory(hre, "Sqrt", mintRate, burnRate, is721, isSbt);
-    hre.linearToken = async (mintRate = 100, burnRate = 100, is721 = false, isSbt = false) =>
-        await initFactory(hre, "Linear", mintRate, burnRate, is721, isSbt);
+    hre.expToken = async (
+        mintRate = 100,
+        burnRate = 100,
+        is721 = false,
+        isSbt = false,
+        raisingToken = constants.AddressZero
+    ) => await initFactory(hre, "Exp", mintRate, burnRate, is721, isSbt, raisingToken);
+    hre.sqrtToken = async (
+        mintRate = 100,
+        burnRate = 100,
+        is721 = false,
+        isSbt = false,
+        raisingToken = constants.AddressZero
+    ) => await initFactory(hre, "Sqrt", mintRate, burnRate, is721, isSbt, raisingToken);
+    hre.linearToken = async (
+        mintRate = 100,
+        burnRate = 100,
+        is721 = false,
+        isSbt = false,
+        raisingToken = constants.AddressZero
+    ) => await initFactory(hre, "Linear", mintRate, burnRate, is721, isSbt, raisingToken);
 });
 
-async function initFactory(hre: any, type, mintRate, burnRate, is721, isSbt) {
+async function initFactory(hre: any, type, mintRate, burnRate, is721, isSbt, raisingToken) {
     let ERC20Contract = "HotpotERC20Mixed";
     let ERC721Contract = "HotpotERC721Mixed";
     let expTokenContract = "ExpMixedBondingSwap";
     let linearTokenContract = "LinearMixedBondingSwap";
     let sqrtTokenContract = "SqrtMixedBondingSwap";
     const { network, upgrades } = require("hardhat");
-
     await network.provider.send("hardhat_setBalance", [
         hre.treasury.address,
         defines.Unit.Ether.mul(100)._hex.replace(/0x0+/, "0x"),
@@ -90,67 +104,79 @@ async function initFactory(hre: any, type, mintRate, burnRate, is721, isSbt) {
 
     hre.mintRate = mintRate;
     hre.burnRate = burnRate;
-    const data1 = hre.ethers.utils.defaultAbiCoder.encode(
+    const data1 = hre.ethers.utils.defaultAbiCoder.encode(["uint256", "uint256"], [defines.Unit.Ether.mul(100), 0]);
+    const data2 = hre.ethers.utils.defaultAbiCoder.encode(
         ["uint256", "uint256"],
-        [defines.Unit.Ether.mul(100), 0]
+        [defines.Unit.Ether.mul(14), defines.Unit.Ether.mul(2e6)]
     );
-    const data2 = hre.ethers.utils.defaultAbiCoder.encode(["uint256", "uint256"], [defines.Unit.Ether.mul(14), defines.Unit.Ether.mul(2e6)]);
-    const data3 = hre.ethers.utils.defaultAbiCoder.encode(["uint256"], [defines.Unit.Ether]);
+    const data3 = hre.ethers.utils.defaultAbiCoder.encode(["uint256"], [defines.Unit.Ether.div(1e9)]);
     switch (type) {
         case "Exp":
-            await hre.factory.connect(hre.platform).deployToken({
-                tokenType: mainType,
-                bondingCurveType: defines.ExpType,
-                name: "Test Exponential Token" + hre.initCount,
-                symbol: "TET" + hre.initCount,
-                metadata: "tet meta",
-                projectAdmin: hre.treasury.address,
-                projectTreasury: hre.treasury.address,
-                projectMintTax: mintRate,
-                projectBurnTax: burnRate,
-                isSbt: isSbt,
-                data: data2,
-            });
+            await hre.factory.connect(hre.platform).deployToken(
+                {
+                    tokenType: mainType,
+                    bondingCurveType: defines.ExpType,
+                    name: "Test Exponential Token" + hre.initCount,
+                    symbol: "TET" + hre.initCount,
+                    metadata: "tet meta",
+                    projectAdmin: hre.treasury.address,
+                    projectTreasury: hre.treasury.address,
+                    projectMintTax: mintRate,
+                    projectBurnTax: burnRate,
+                    isSbt: isSbt,
+                    raisingTokenAddr: raisingToken,
+                    data: data2,
+                },
+                0
+            );
             break;
         case "Linear":
-            await hre.factory.connect(hre.platform).deployToken({
-                tokenType: mainType,
-                bondingCurveType: defines.LinearType,
-                name: "Test Linear Token" + hre.initCount,
-                symbol: "TLT" + hre.initCount,
-                metadata: "tlt meta",
-                projectAdmin: hre.treasury.address,
-                projectTreasury: hre.treasury.address,
-                projectMintTax: mintRate,
-                projectBurnTax: burnRate,
-                isSbt: isSbt,
-                data: data1,
-            });
+            await hre.factory.connect(hre.platform).deployToken(
+                {
+                    tokenType: mainType,
+                    bondingCurveType: defines.LinearType,
+                    name: "Test Linear Token" + hre.initCount,
+                    symbol: "TLT" + hre.initCount,
+                    metadata: "tlt meta",
+                    projectAdmin: hre.treasury.address,
+                    projectTreasury: hre.treasury.address,
+                    projectMintTax: mintRate,
+                    projectBurnTax: burnRate,
+                    isSbt: isSbt,
+                    raisingTokenAddr: raisingToken,
+                    data: data1,
+                },
+                0
+            );
             break;
         case "Sqrt":
-            await hre.factory.connect(hre.platform).deployToken({
-                tokenType: mainType,
-                bondingCurveType: defines.SqrtType,
-                name: "Test Squareroot Token" + hre.initCount,
-                symbol: "TST" + hre.initCount,
-                metadata: "tst meta",
-                projectAdmin: hre.treasury.address,
-                projectTreasury: hre.treasury.address,
-                projectMintTax: mintRate,
-                projectBurnTax: burnRate,
-                isSbt: isSbt,
-                data: data3,
-            });
+            await hre.factory.connect(hre.platform).deployToken(
+                {
+                    tokenType: mainType,
+                    bondingCurveType: defines.SqrtType,
+                    name: "Test Squareroot Token" + hre.initCount,
+                    symbol: "TST" + hre.initCount,
+                    metadata: "tst meta",
+                    projectAdmin: hre.treasury.address,
+                    projectTreasury: hre.treasury.address,
+                    projectMintTax: mintRate,
+                    projectBurnTax: burnRate,
+                    isSbt: isSbt,
+                    raisingTokenAddr: raisingToken,
+                    data: data3,
+                },
+                0
+            );
             break;
     }
     const addr = await hre.factory.getToken(hre.initCount++);
     return await hre.ethers.getContractAt(is721 ? ERC721Contract : ERC20Contract, addr);
 }
 
-const config: HardhatUserConfig  = {
-    docgen: { 
-        outputDir: 'docs',
-        pages: "files"
+const config: HardhatUserConfig = {
+    docgen: {
+        outputDir: "docs",
+        pages: "files",
     },
     solidity: {
         version: "0.8.17",
@@ -183,10 +209,6 @@ const config: HardhatUserConfig  = {
         },
         rinkby: {
             url: process.env.RINKBY_URL || "",
-            accounts: process.env.PRIVATE_KEY !== undefined ? process.env.PRIVATE_KEY.split(",") : [],
-        },
-        goerli: {
-            url: process.env.GOERLI_URL || "",
             accounts: process.env.PRIVATE_KEY !== undefined ? process.env.PRIVATE_KEY.split(",") : [],
         },
         tbsc: {

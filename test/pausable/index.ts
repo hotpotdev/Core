@@ -25,7 +25,7 @@ describe("验证 Pausable 暂停功能", async () => {
             const hotpotTokenAbi = await HotpotERC20Mixed__factory.connect(token.address, buyer);
             const factoryAbi = await HotpotTokenFactory__factory.connect(hre.factory.address, platform);
 
-            let tx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: Ether.mul(10) });
+            let tx1 = await hotpotTokenAbi.connect(buyer).mint(buyer.address, Ether.mul(10), 0, { value: Ether.mul(10) });
             await tx1.wait();
 
             await expect(factoryAbi.connect(treasury).pause(hotpotTokenAbi.address), "非 platform 用户不可调用 pause 功能").to
@@ -54,8 +54,10 @@ describe("验证 Pausable 暂停功能", async () => {
             expect(await hotpotTokenAbi.paused(), "pause 后 paused 应当为 true").to.true;
 
             let erc20Balance = await hotpotTokenAbi.balanceOf(buyer.address);
-            await expect(hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: Ether.mul(10) }), "暂停后 不能mint").to
-                .reverted;
+            await expect(
+                hotpotTokenAbi.connect(buyer).mint(buyer.address, Ether.mul(10), 0, { value: Ether.mul(10) }),
+                "暂停后 不能mint"
+            ).to.reverted;
             await expect(hotpotTokenAbi.connect(buyer).burn(buyer.address, erc20Balance, 0), "暂停后 不能burn").to.reverted;
             await expect(hotpotTokenAbi.connect(buyer).transfer(buyer.address, erc20Balance), "暂停后 不能transfer").to
                 .reverted;
@@ -68,7 +70,7 @@ describe("验证 Pausable 暂停功能", async () => {
             await expect(hotpotTokenAbi.connect(buyer).transfer(treasury.address, "100"), "取消暂停后 可以转账").not.reverted;
 
             await expect(
-                hotpotTokenAbi.connect(buyer).mint(buyer.address, 0, { value: Ether.mul(10) }),
+                hotpotTokenAbi.connect(buyer).mint(buyer.address, Ether.mul(10), 0, { value: Ether.mul(10) }),
                 "取消暂停后 可以铸造"
             ).not.reverted;
 
