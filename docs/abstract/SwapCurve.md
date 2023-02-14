@@ -29,13 +29,13 @@ function _changeCoinMaker(address newBonding) internal
 ### _calculateMintAmountFromBondingCurve
 
 ```solidity
-function _calculateMintAmountFromBondingCurve(uint256 tokens, uint256 totalSupply) internal view returns (uint256, uint256)
+function _calculateMintAmountFromBondingCurve(uint256 tokens, uint256 totalSupply) internal view virtual returns (uint256, uint256)
 ```
 
 ### _calculateBurnAmountFromBondingCurve
 
 ```solidity
-function _calculateBurnAmountFromBondingCurve(uint256 tokens, uint256 totalSupply) internal view returns (uint256, uint256)
+function _calculateBurnAmountFromBondingCurve(uint256 tokens, uint256 totalSupply) internal view virtual returns (uint256, uint256)
 ```
 
 ### _price

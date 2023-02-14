@@ -195,6 +195,10 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
         emit LogTokenUpgradeRejected(proxyAddress, msg.sender, reason);
     }
 
+    /**
+     * @notice when the upgrade requested, admin can upgrade the implement of token after 2 days
+     * @param proxyAddress the proxy address of token
+     */
     function upgradeTokenImplement(address proxyAddress) external payable override onlyRole(PLATFORM_ADMIN_ROLE) {
         require(
             upgradeTimelock[proxyAddress] != 0 && upgradeTimelock[proxyAddress] <= block.timestamp,
