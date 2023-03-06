@@ -48,4 +48,6 @@ contract HotpotRoute is IHotpotRoute {
         (, raisingTokenAmount, , ) = IHotpotToken(fromTokenAddr).estimateBurn(amount);
         (returnAmount, , , ) = IHotpotToken(toTokenAddr).estimateMint(raisingTokenAmount);
     }
+
+    receive() external payable {}
 }

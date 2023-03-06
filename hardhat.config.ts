@@ -84,9 +84,16 @@ async function initFactory(hre: any, type, mintRate, burnRate, is721, isSbt, rai
         const hotpot = await hotpotToken.deploy();
         const erc721token = await hre.ethers.getContractFactory(ERC721Contract);
         const erc721 = await erc721token.deploy();
-        const factory = await upgrades.deployProxy(HotpotFactory, [hre.platform.address, hre.platform.address], {
-            unsafeAllowLinkedLibraries: true,
-        });
+
+        const routeContract = await hre.ethers.getContractFactory("HotpotRoute");
+        const route = await routeContract.deploy();
+        const factory = await upgrades.deployProxy(
+            HotpotFactory,
+            [hre.platform.address, hre.platform.address, route.address],
+            {
+                unsafeAllowLinkedLibraries: true,
+            }
+        );
         hre.factory = factory;
         const expToken = await hre.ethers.getContractFactory(expTokenContract);
         const exp = await expToken.deploy();

@@ -35,15 +35,15 @@ describe("swap", async () => {
             let treasury = signers[Id.Treasury];
             let platform = signers[Id.Platform];
 
-            const token = await hre.linearToken(100, 100, false, false, mockToken.address);
-            const token2 = await hre.linearToken(100, 100, false, false, mockToken.address);
-            const token3 = await hre.linearToken();
+            const token = await hre.linearToken(100, 100, false, false);
+            const token2 = await hre.linearToken(100, 100, false, false);
+            const token3 = await hre.linearToken(100, 100, false, false, mockToken.address);
             const tokenA = await HotpotERC20Mixed__factory.connect(token.address, buyer);
             const tokenB = await HotpotERC20Mixed__factory.connect(token2.address, buyer);
             const tokenC = await HotpotERC20Mixed__factory.connect(token3.address, buyer);
-            await cliamERC20(buyer.address, parseEther("10000"));
-            await mockToken.connect(buyer).approve(tokenA.address, parseEther("10000"));
-            await tokenA.mint(buyer.address, parseEther("10000"), 0);
+            // await cliamERC20(buyer.address, parseEther("1"));
+            // await mockToken.connect(buyer).approve(tokenA.address, parseEther("10000"));
+            await tokenA.mint(buyer.address, parseEther("1"), 0, { value: parseEther("1") });
             const routeContract = await ethers.getContractFactory("HotpotRoute");
             const route = await routeContract.deploy();
             const tokenABalance = await tokenA.balanceOf(buyer.address);

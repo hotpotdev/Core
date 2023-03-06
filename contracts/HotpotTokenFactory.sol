@@ -28,6 +28,7 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
     uint256 private constant MAX_PLATFORM_TAX_RATE = 100;
     uint256 private _platformMintTax;
     uint256 private _platformBurnTax;
+    address private _route;
 
     receive() external payable {
         (bool success, ) = _platformTreasury.call{value: msg.value}("");
@@ -36,10 +37,11 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
 
     fallback() external payable {}
 
-    function initialize(address platformAdmin, address platformTreasury) public initializer {
+    function initialize(address platformAdmin, address platformTreasury, address route) public initializer {
         _grantRole(PLATFORM_ADMIN_ROLE, platformAdmin);
         _platformAdmin = platformAdmin;
         _platformTreasury = platformTreasury;
+        _route = route;
         _platformMintTax = 80;
         _platformBurnTax = 80;
         _proxyAdmin = new ProxyAdmin();
@@ -140,12 +142,22 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
         require(addr != address(0), "no such token");
     }
 
+    function getRoute() public view returns (address) {
+        return _route;
+    }
+
     function getPlatformAdmin() public view returns (address) {
         return _platformAdmin;
     }
 
     function getPlatformTreasury() public view returns (address) {
         return _platformTreasury;
+    }
+
+    function setRoute(address route) public onlyRole(PLATFORM_ADMIN_ROLE) {
+        require(route != address(0), "Invalid Address");
+        _route = route;
+        emit LogRouteChanged(route);
     }
 
     function setPlatformAdmin(address newPlatformAdmin) public onlyRole(PLATFORM_ADMIN_ROLE) {

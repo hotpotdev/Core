@@ -202,6 +202,7 @@ interface IHotpotFactory {
     event LogPlatformAdminChanged(address newAccount);
 
     event LogPlatformTreasuryChanged(address newAccount);
+    event LogRouteChanged(address newRoute);
 
     event LogPlatformTaxChanged();
 }
