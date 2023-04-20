@@ -10,6 +10,8 @@ import "solidity-coverage";
 import "@openzeppelin/hardhat-upgrades";
 import "solidity-docgen";
 import { IHotpotFactory__factory } from "./typechain";
+import "@matterlabs/hardhat-zksync-deploy";
+import "@matterlabs/hardhat-zksync-solc";
 
 dotenv.config();
 // This is a sample Hardhat task. To learn how to create your own go to
@@ -185,6 +187,11 @@ const config: HardhatUserConfig = {
         outputDir: "docs",
         pages: "files",
     },
+    zksolc: {
+        version: "1.3.5",
+        compilerSource: "binary",
+        settings: {},
+    },
     solidity: {
         version: "0.8.17",
         settings: {
@@ -202,10 +209,27 @@ const config: HardhatUserConfig = {
                 accountsBalance: "200000000000000000000001",
             },
             allowUnlimitedContractSize: true,
+            zksync: true,
+        },
+        mainnet: {
+            url: "https://rpc.ankr.com/eth",
+        },
+        zkSyncMainnet: {
+            url: "https://mainnet.era.zksync.io",
+            ethNetwork: "mainnet", // Can also be the RPC URL of the network (e.g. `https://goerli.infura.io/v3/<API_KEY>`)
+            zksync: true,
+        },
+        zkSyncTestnet: {
+            url: "https://zksync2-testnet.zksync.dev",
+            ethNetwork: "goerli", // Can also be the RPC URL of the network (e.g. `https://goerli.infura.io/v3/<API_KEY>`)
+            zksync: true,
         },
         local: {
             url: "http://192.168.3.83:8545",
             allowUnlimitedContractSize: true,
+        },
+        goerli: {
+            url: "https://eth-goerli.public.blastapi.io",
         },
         gpnode: {
             url: process.env.GPNODE_URL || "",
@@ -221,6 +245,9 @@ const config: HardhatUserConfig = {
         tbsc: {
             url: process.env.TBSC_URL || "",
             accounts: process.env.PRIVATE_KEY !== undefined ? process.env.PRIVATE_KEY.split(",") : [],
+        },
+        bsc: {
+            url: "https://rpc-bsc.48.club",
         },
     },
     gasReporter: {
