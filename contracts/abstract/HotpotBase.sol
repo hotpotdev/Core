@@ -141,6 +141,9 @@ abstract contract HotpotBase is HotpotMetadata, SwapCurve, AccessControlUpgradea
     function _destroy() internal {
         require(_doomsday, "Warning: You are not allowed to destroy under normal circumstances");
         emit LogDestroyed(_msgSender());
+        if(_raisingToken!=address(0)){
+            IERC20(_raisingToken).transfer(_msgSender(),IERC20(_raisingToken).balanceOf(address(this)));
+        }
         selfdestruct(payable(_projectTreasury));
     }
 
