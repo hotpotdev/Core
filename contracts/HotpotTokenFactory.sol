@@ -8,6 +8,7 @@ import "./interfaces/IHotpotFactory.sol";
 import "./interfaces/IHotpotToken.sol";
 import "./interfaces/IBondingCurve.sol";
 import {GovernorLib} from "./libraries/GovernorLib.sol";
+import "./interfaces/IHook.sol";
 
 contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
     bytes32 public constant PLATFORM_ADMIN_ROLE = keccak256("PLATFORM_ADMIN");
@@ -17,6 +18,8 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
     mapping(address => string) private tokensType;
     mapping(address => uint256) private upgradeTimelock;
     mapping(address => bytes) private upgradeList;
+    mapping(address => bool) public whitelistHooks;
+    mapping(address => address[]) public tokenHooks;
 
     uint256 private tokensLength;
 
@@ -29,6 +32,12 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
     uint256 private _platformMintTax;
     uint256 private _platformBurnTax;
     address private _route;
+
+    modifier onlyProjectAdmin(address tokenAddr) {
+        bytes32 projectAdminRole = IHotpotToken(tokenAddr).getProjectAdminRole();
+        require(IHotpotToken(tokenAddr).hasRole(projectAdminRole, msg.sender), "not project admin");
+        _;
+    }
 
     receive() external payable {
         (bool success, ) = _platformTreasury.call{value: msg.value}("");
@@ -58,7 +67,6 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
             token.projectTreasury,
             token.projectMintTax,
             token.projectBurnTax,
-            token.isSbt,
             token.raisingTokenAddr,
             token.data,
             address(this)
@@ -198,9 +206,7 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
         emit LogTokenUpgradeRequested(proxyAddress, upgradeTimelock[proxyAddress], tokenImpl, msg.sender, data);
     }
 
-    function rejectUpgrade(address proxyAddress, string calldata reason) external {
-        bytes32 projectAdminRole = IHotpotToken(proxyAddress).getProjectAdminRole();
-        require(IHotpotToken(proxyAddress).hasRole(projectAdminRole, msg.sender), "not project admin");
+    function rejectUpgrade(address proxyAddress, string calldata reason) external onlyProjectAdmin(proxyAddress) {
         require(upgradeTimelock[proxyAddress] != 0, "project have no upgrade");
         upgradeTimelock[proxyAddress] = 0;
         upgradeList[proxyAddress] = new bytes(0);
@@ -221,5 +227,51 @@ contract HotpotTokenFactory is IHotpotFactory, Initializable, AccessControl {
         upgradeList[proxyAddress] = new bytes(0);
         _proxyAdmin.upgradeAndCall{value: msg.value}(TransparentUpgradeableProxy(payable(proxyAddress)), impl, data);
         emit LogTokenImplementUpgraded(proxyAddress, tokensType[proxyAddress], _implementsMap[tokensType[proxyAddress]]);
+    }
+
+    function setHook(address hook, bool flag) external override onlyRole(PLATFORM_ADMIN_ROLE) {
+        whitelistHooks[hook] = flag;
+    }
+
+    function addHookForToken(address token, address hook, bytes calldata data) external override onlyProjectAdmin(token) {
+        require(whitelistHooks[token], "not whitelist");
+        tokenHooks[token].push(hook);
+        IHook(hook).registerHook(token, data);
+    }
+
+    function updateHookForToken(
+        address token,
+        address[] calldata hooks,
+        bytes[] calldata datas
+    ) external override onlyProjectAdmin(token) {
+        require(hooks.length == datas.length);
+        tokenHooks[token] = hooks;
+        for (uint256 i = 0; i < hooks.length; i++) {
+            IHook(hooks[i]).registerHook(token, datas[i]);
+        }
+    }
+
+    function removeHookForToken(address token, address hook) external override onlyProjectAdmin(token) {
+        address[] memory hooks = tokenHooks[token];
+        delete tokenHooks[token];
+        for (uint256 i = 0; i < hooks.length; i++) {
+            if (hook != hooks[i]) {
+                tokenHooks[token].push(hooks[i]);
+            } else {
+                IHook(hook).unregisterHook(token);
+            }
+        }
+    }
+
+    function removeAllHookForToken(address token) external override onlyProjectAdmin(token) {
+        address[] memory hooks = tokenHooks[token];
+        for (uint256 i = 0; i < hooks.length; i++) {
+            IHook(hooks[i]).unregisterHook(token);
+        }
+        delete tokenHooks[token];
+    }
+
+    function getTokenHooks(address token) external view override returns (address[] memory) {
+        return tokenHooks[token];
     }
 }

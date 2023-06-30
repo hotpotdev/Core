@@ -46,10 +46,6 @@ interface IHotpotFactory {
          */
         uint256 projectBurnTax;
         /**
-         * Whether the token is a supply-based token.
-         */
-        bool isSbt;
-        /**
          * Address of the raising token.
          */
         address raisingTokenAddr;
@@ -182,6 +178,23 @@ interface IHotpotFactory {
      * @param proxyAddress the address of the token's proxy.
      */
     function upgradeTokenImplement(address proxyAddress) external payable;
+
+    function getTokenHooks(address token) external view returns (address[] memory hooks);
+
+    /**
+     *  whitelist/blacklist a hook contract
+     *  @param hook the address of the hook contract
+     *  @param flag true for whitelist, false for blacklist
+     */
+    function setHook(address hook, bool flag) external;
+
+    function addHookForToken(address token, address hook, bytes calldata data) external;
+
+    function updateHookForToken(address token, address[] calldata hooks, bytes[] calldata datas) external;
+
+    function removeHookForToken(address token, address hook) external;
+
+    function removeAllHookForToken(address token) external;
 
     event LogTokenDeployed(string tokenType, string bondingCurveType, uint256 tokenId, address deployedAddr);
 

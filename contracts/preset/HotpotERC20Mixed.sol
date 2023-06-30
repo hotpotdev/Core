@@ -17,7 +17,6 @@ contract HotpotERC20Mixed is HotpotBase, ERC20VotesUpgradeable {
         address projectTreasury,
         uint256 projectMintTax,
         uint256 projectBurnTax,
-        bool isSbt,
         address raisingTokenAddr,
         bytes memory parameters,
         address factory
@@ -27,7 +26,6 @@ contract HotpotERC20Mixed is HotpotBase, ERC20VotesUpgradeable {
         _initProject(projectAdmin, projectTreasury);
         _initFactory(factory);
         _setMetadata(metadata);
-        _isSbt = isSbt;
         _bondingCurveParameters = parameters;
         _raisingToken = raisingTokenAddr;
         _setProjectTaxRate(projectMintTax, projectBurnTax);
@@ -42,15 +40,43 @@ contract HotpotERC20Mixed is HotpotBase, ERC20VotesUpgradeable {
     }
 
     function _mintInternal(address account, uint256 amount) internal virtual override {
+        address[] memory hooks = getHooks();
+        for (uint256 i = 0; i < hooks.length; i++) {
+            require(IHook(hooks[i]).beforeMintHook(address(0), account, amount));
+        }
         _mint(account, amount);
+
+        for (uint256 i = 0; i < hooks.length; i++) {
+            require(IHook(hooks[i]).afterMintHook(address(0), account, amount));
+        }
     }
 
     function _burnInternal(address account, uint256 amount) internal virtual override {
+        address[] memory hooks = getHooks();
+        for (uint256 i = 0; i < hooks.length; i++) {
+            require(IHook(hooks[i]).beforeBurnHook(account, address(0), amount));
+        }
         _burn(account, amount);
+
+        for (uint256 i = 0; i < hooks.length; i++) {
+            require(IHook(hooks[i]).afterBurnHook(account, address(0), amount));
+        }
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
         super._beforeTokenTransfer(from, to, amount);
         require(!paused(), "ERC20Pausable: token transfer while paused");
+        address[] memory hooks = getHooks();
+        for (uint256 i = 0; i < hooks.length; i++) {
+            require(IHook(hooks[i]).beforeTransferHook(from, to, amount));
+        }
+    }
+
+    function _afterTokenTransfer(address from, address to, uint256 amount) internal virtual override {
+        super._afterTokenTransfer(from, to, amount);
+        address[] memory hooks = getHooks();
+        for (uint256 i = 0; i < hooks.length; i++) {
+            require(IHook(hooks[i]).afterTransferHook(from, to, amount));
+        }
     }
 }

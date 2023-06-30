@@ -18,7 +18,6 @@ interface IHotpotToken is IAccessControlUpgradeable {
      * @param projectTreasury Address of the project treasury.
      * @param projectMintTax Tax rate for project token minting.
      * @param projectBurnTax Tax rate for project token burning.
-     * @param isSbt Flag indicating whether the token is a SBT.
      * @param raisingTokenAddr Address of the raising token.
      * @param parameters Parameters for the bonding curve contract.
      * @param factory Address of the factory contract.
@@ -32,7 +31,6 @@ interface IHotpotToken is IAccessControlUpgradeable {
         address projectTreasury,
         uint256 projectMintTax,
         uint256 projectBurnTax,
-        bool isSbt,
         address raisingTokenAddr,
         bytes memory parameters,
         address factory

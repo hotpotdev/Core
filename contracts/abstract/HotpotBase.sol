@@ -5,11 +5,11 @@ pragma solidity >=0.8.13;
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "hardhat/console.sol";
 
 import "./SwapCurve.sol";
 import "./HotpotMetadata.sol";
 import "../interfaces/IHotpotFactory.sol";
+import "../interfaces/IHook.sol";
 
 abstract contract HotpotBase is HotpotMetadata, SwapCurve, AccessControlUpgradeable, ReentrancyGuard {
     bool private _paused = false;
@@ -18,7 +18,6 @@ abstract contract HotpotBase is HotpotMetadata, SwapCurve, AccessControlUpgradea
     address internal _projectTreasury;
     address internal _projectAdmin;
     IHotpotFactory internal _factory;
-    bool internal _isSbt;
     bool private _doomsday = false;
     uint256 internal constant MAX_TAX_RATE_DENOMINATOR = 10000;
     uint256 internal constant MAX_PROJECT_TAX_RATE = 2000;
@@ -40,7 +39,6 @@ abstract contract HotpotBase is HotpotMetadata, SwapCurve, AccessControlUpgradea
         address projectTreasury,
         uint256 projectMintTax,
         uint256 projectBurnTax,
-        bool isSbt,
         address raisingTokenAddr,
         bytes memory parameters,
         address factory
@@ -141,14 +139,10 @@ abstract contract HotpotBase is HotpotMetadata, SwapCurve, AccessControlUpgradea
     function _destroy() internal {
         require(_doomsday, "Warning: You are not allowed to destroy under normal circumstances");
         emit LogDestroyed(_msgSender());
-        if(_raisingToken!=address(0)){
-            IERC20(_raisingToken).transfer(_msgSender(),IERC20(_raisingToken).balanceOf(address(this)));
+        if (_raisingToken != address(0)) {
+            IERC20(_raisingToken).transfer(_msgSender(), IERC20(_raisingToken).balanceOf(address(this)));
         }
         selfdestruct(payable(_projectTreasury));
-    }
-
-    function isSbt() public view returns (bool) {
-        return _isSbt;
     }
 
     function _setProjectTaxRate(uint256 projectMintTax, uint256 projectBurnTax) internal {
@@ -195,7 +189,6 @@ abstract contract HotpotBase is HotpotMetadata, SwapCurve, AccessControlUpgradea
         _transferInternal(_factory.getPlatformTreasury(), platformFee);
         _transferInternal(_projectTreasury, projectFee);
         _mintInternal(to, daoTokenAmount);
-        _afterMint(to);
         emit LogMint(to, daoTokenAmount, payAmountActual, platformFee, projectFee);
     }
 
@@ -281,7 +274,9 @@ abstract contract HotpotBase is HotpotMetadata, SwapCurve, AccessControlUpgradea
 
     function _getCurrentSupply() internal view virtual returns (uint256);
 
-    function _afterMint(address account) internal virtual {}
+    function getHooks() public view returns (address[] memory) {
+        return _factory.getTokenHooks(address(this));
+    }
 
     event LogProjectTaxChanged();
     event LogDeclareDoomsday(address account);
